@@ -152,6 +152,18 @@ def test_helper_cleanup_refuses_a_live_service(tmp_path, monkeypatch):
     send.assert_not_called()
 
 
+def test_workflow_missing_orvix_blocks_before_server_start(tmp_path, monkeypatch):
+    pytest.importorskip("takler")
+    monkeypatch.delenv("SCENARIO_ORVIX_BIN", raising=False)
+    case = load_catalog(ROOT / "catalog.toml")["EXE-003"]
+    assert runner.execute(case, "local", tmp_path) == 1
+    report = json.loads(next(tmp_path.glob("*/report.json")).read_text())
+    assert report["result"] == "environment_blocked"
+    assert "SCENARIO_ORVIX_BIN" in report["reason"]
+    assert "server_history" not in report
+    assert not list(tmp_path.glob("*/server*.log"))
+
+
 def test_security_prepare_failure_does_not_start_service(tmp_path, monkeypatch):
     entry = tmp_path / "prepare_failure.py"
     entry.write_text(

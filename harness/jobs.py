@@ -1,6 +1,7 @@
 """Gated real Shell jobs and Linux process evidence for scheduling scenarios."""
 
 import os
+import re
 import shlex
 import threading
 import time
@@ -276,7 +277,14 @@ class Jobs:
             "Missing output reference for an attempt",
         )
         require(
-            len(list(self.evidence.directory.rglob("*.job*"))) == len(expected),
+            len(
+                [
+                    path
+                    for path in self.evidence.directory.rglob("*.job*")
+                    if re.search(r"\.job[0-9a-f-]{36}$", path.name)
+                ]
+            )
+            == len(expected),
             "Unexpected extra generated job script",
         )
         child_successes = {}

@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from harness.catalog import load_catalog
 from harness.jobs import Jobs
+from harness.presentation import start_showcase, finish_showcase
 from harness.runtime import Evidence, LocalService, require
 
 
@@ -41,46 +42,7 @@ def main():
             script = evidence.directory / "interactive.takler"
             template = Path(__file__).with_name("controlled.takler").read_text()
             script.write_text(template.replace("150s", "900s"))
-            flow = jobs.flow("showcase")
-            flow.add_limit("work", 3)
-            flow.add_parameter(
-                "TAKLER_SHELL_JOB_CMD",
-                "setsid {{ TAKLER_JOB | shquote }} > {{ TAKLER_JOBOUT | shquote }} 2>&1 < /dev/null &",
-            )
-            for name in ("running", "failed", "done"):
-                jobs.task(flow, name, script=script).add_in_limit("work")
-            jobs.task(
-                flow,
-                "blocked",
-                "/showcase/running == complete and /showcase/failed == aborted",
-                script=script,
-            ).add_in_limit("work")
-            jobs.load(flow)
-            running, failed, done, blocked = [
-                f"/showcase/{name}" for name in ("running", "failed", "done", "blocked")
-            ]
-            active = jobs.phase(
-                "three-active",
-                {
-                    running: "active",
-                    failed: "active",
-                    done: "active",
-                    blocked: "queued",
-                },
-            )
-            expected = {
-                jobs.action(active, done, "success"): "success",
-                jobs.action(active, failed, "failure"): "failure",
-            }
-            mixed = jobs.phase(
-                "four-states",
-                {
-                    running: "active",
-                    failed: "aborted",
-                    done: "complete",
-                    blocked: "queued",
-                },
-            )
+            mixed, expected = start_showcase(jobs, script=script, detached=True)
             visual = evidence.directory / "visual"
             visual.mkdir()
             control = evidence.directory / "control"
@@ -130,10 +92,7 @@ def main():
             if paused:
                 os.kill(service.process.pid, signal.SIGCONT)
                 paused = False
-            expected[jobs.action(mixed, running, "success")] = "success"
-            next_nodes = jobs.phase("blocked-released", {blocked: "active"})
-            expected[jobs.action(next_nodes, blocked, "success")] = "success"
-            jobs.phase("final", {blocked: "complete"})
+            expected = finish_showcase(jobs, mixed, expected)
             evidence.record_checks(
                 **jobs.finish(expected, capacity=3),
                 fixture_completed=True,

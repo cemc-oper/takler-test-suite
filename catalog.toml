@@ -467,3 +467,16 @@ capabilities = ["checkpoint_failure", "permissions", "halt_causes"]
 profiles = ["local"]
 status = "executable"
 entry = "cases/recovery/saving/rcv_004_write_failure/case.py"
+
+[[cases]]
+id = "EXE-003"
+title = "takflow、Takler 与 orvix 业务链路"
+area = "execution"
+category = "submission"
+kind = "job"
+difficulty = "L3"
+roles = ["developer", "operator"]
+capabilities = ["takflow", "orvix_local", "parallel", "failure", "manual_tui"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/execution/submission/exe_003_workflow/case.py"

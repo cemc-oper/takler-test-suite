@@ -2,7 +2,7 @@
 
 Takler 的公开行为测试套件，支持自动化场景验证和操作演练，仓库名为 `takler-test-suite`。项目包含统一入口、场景目录、共享运行设施、任务模板和设施回归测试。
 
-当前接入 36 个用例：DEF-001–003、PAR-001–002，BAS-001–003、DPL-001–003，EXE-001–002、DEP-001–003、RES-001–002，CTL-001–003、TIM-001–002，QRY-001–005、SEC-001–004，以及 RCV-001–004。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。SEC-002 另需 `openssl`。
+当前接入 37 个用例：DEF-001–003、PAR-001–002，BAS-001–003、DPL-001–003，EXE-001–003、DEP-001–003、RES-001–002，CTL-001–003、TIM-001–002，QRY-001–005、SEC-001–004，以及 RCV-001–004。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。SEC-002 另需 `openssl`，EXE-003 另需同环境中的 takflow 和绝对路径 `SCENARIO_ORVIX_BIN`。
 
 在本工作区，先在 `repo/takler/` 准备开发虚拟环境，再从工作区根目录进入本仓库执行：
 
@@ -70,7 +70,9 @@ Go 恢复用例只需 `SCENARIO_GO_CLIENT`，不依赖查询 probe。RCV-001 明
 
 ## 接入下一项
 
-在 `catalog.toml` 登记用例的分类、形态、角色、能力、profile 和实现状态。可执行入口放到 `cases/<一级>/<二级>/<用例编号小写_名称>/case.py`。在线 `local` 入口定义 `run(evidence, service)`，通过共享设施调用 CLI 和记录证据。离线 `offline` 入口定义 `run(evidence)`，直接使用公开构建 API。EXE-003 跨组件业务链路的统一接入按 SCN-09 推进。
+在 `catalog.toml` 登记用例的分类、形态、角色、能力、profile 和实现状态。可执行入口放到 `cases/<一级>/<二级>/<用例编号小写_名称>/case.py`。在线 `local` 入口定义 `run(evidence, service)`，通过共享设施调用 CLI 和记录证据。离线 `offline` 入口定义 `run(evidence)`，直接使用公开构建 API。
+
+EXE-003 已接入真实 takflow → Takler → orvix local 的成功与受控失败流程，验证 Python/Go × gRPC/HTTP 四种组合。组合演练默认完成检查后关闭服务，显式 `--keep-service` 才保留服务供 CLI/TUI 观察；finish、stop、Ctrl-C 和截止都有清理路径。[跨组件运行与人工演练说明](docs/operator-exercise.md)
 
 ```bash
 "$python" -B -m pytest -q -s tests
@@ -93,3 +95,5 @@ Go 恢复用例只需 `SCENARIO_GO_CLIENT`，不依赖查询 probe。RCV-001 明
 [SCN-07 查询、安全与客户端矩阵](../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md)
 
 [SCN-08 重启恢复与组合故障](../../doc/2026-10-10-scenario-testing/records/scn-08/scn-08-wsl-recovery-faults.md)
+
+[SCN-09 跨组件流程与人工演练整合](../../doc/2026-10-10-scenario-testing/records/scn-09/scn-09-wsl-workflow-exercise.md)
