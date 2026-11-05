@@ -139,6 +139,58 @@ def test_wait_timeout():
         wait_for("missing condition", lambda: False, timeout=0.02)
 
 
+def test_security_prepare_failure_does_not_start_service(tmp_path, monkeypatch):
+    entry = tmp_path / "prepare_failure.py"
+    entry.write_text(
+        "from harness.runtime import RunError\n"
+        "def prepare(evidence, service):\n"
+        "    raise RunError('fixture preparation failed')\n"
+        "def run(evidence, service):\n"
+        "    raise AssertionError('case must not run')\n"
+    )
+    start = Mock(side_effect=AssertionError("must not start"))
+    monkeypatch.setattr(LocalService, "start", start)
+    case = replace(load_catalog(ROOT / "catalog.toml")["SEC-001"], entry=entry)
+    assert runner.execute(case, "local", tmp_path / "runs") == 1
+    start.assert_not_called()
+    report = read_report(tmp_path / "runs")
+    assert report["reason"] == "fixture preparation failed"
+    assert "server" not in report
+
+
+def test_missing_go_client_blocks_before_startup(tmp_path, monkeypatch):
+    monkeypatch.setenv("SCENARIO_GO_CLIENT", str(tmp_path / "absent"))
+    case = load_catalog(ROOT / "catalog.toml")["QRY-001"]
+    assert runner.execute(case, "local", tmp_path / "runs", client="go") == 1
+    report = read_report(tmp_path / "runs")
+    assert report["result"] == "environment_blocked"
+    assert "SCENARIO_GO_CLIENT" in report["reason"]
+    assert "server" not in report
+
+
+def test_offline_rejects_go_client(tmp_path):
+    result = subprocess.run(
+        [
+            sys.executable,
+            ROOT / "run.py",
+            "--runs-dir",
+            tmp_path,
+            "run",
+            "DEF-001",
+            "--profile",
+            "offline",
+            "--client",
+            "go",
+        ],
+        text=True,
+        capture_output=True,
+        timeout=5,
+    )
+    assert result.returncode == 2
+    assert "offline cases do not accept client or transport" in result.stderr
+    assert not list(tmp_path.iterdir())
+
+
 def read_report(runs):
     (path,) = runs.glob("*/report.json")
     return json.loads(path.read_text())

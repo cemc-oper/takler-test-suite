@@ -117,6 +117,9 @@ class Jobs:
             {
                 "TAKLER_HOME": str(self.evidence.directory),
                 "SCENARIO_DATA_SHELL": shlex.quote(str(self.data)),
+                "SCENARIO_CHILD": shlex.quote(str(self.service.client_bin))
+                if self.service
+                else "takler-client-py",
                 "TAKLER_SHELL_JOB_CMD": (
                     "{{ TAKLER_JOB | shquote }} 1> {{ TAKLER_JOBOUT | shquote }} 2>&1"
                 ),

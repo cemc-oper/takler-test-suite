@@ -298,3 +298,120 @@ capabilities = ["repeat_date", "attempt_isolation"]
 profiles = ["local"]
 status = "executable"
 entry = "cases/scheduling/time_repeat/tim_002_repeat_date/case.py"
+
+[[cases]]
+id = "QRY-001"
+title = "范围摘要与实时详情"
+area = "operations"
+category = "queries"
+kind = "service"
+difficulty = "L1"
+roles = ["operator"]
+capabilities = ["summary", "detail"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/queries/qry_001_scopes/case.py"
+
+[[cases]]
+id = "QRY-002"
+title = "增量、长会话与重连"
+area = "operations"
+category = "queries"
+kind = "job"
+difficulty = "L3"
+roles = ["operator"]
+capabilities = ["incremental", "slow", "reconnect"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/queries/qry_002_sessions/case.py"
+
+[[cases]]
+id = "QRY-003"
+title = "同版本完整详细读取"
+area = "operations"
+category = "queries"
+kind = "job"
+difficulty = "L3"
+roles = ["operator"]
+capabilities = ["full_snapshot", "chunks", "cancellation"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/queries/qry_003_full_snapshot/case.py"
+
+[[cases]]
+id = "QRY-004"
+title = "CLI 展示与独立 TUI 观察"
+area = "operations"
+category = "presentation"
+kind = "job"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["cli_presentation", "manual_tui"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/presentation/qry_004_cli/case.py"
+
+[[cases]]
+id = "QRY-005"
+title = "实例输出定位与本地查看"
+area = "operations"
+category = "presentation"
+kind = "job"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["artifacts", "local_outputs"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/presentation/qry_005_outputs/case.py"
+
+[[cases]]
+id = "SEC-001"
+title = "操作凭据与授权"
+area = "security"
+category = "operators"
+kind = "service"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["auth", "operator"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/security/operators/sec_001_operator/case.py"
+
+[[cases]]
+id = "SEC-002"
+title = "TLS 与证书验证"
+area = "security"
+category = "protection"
+kind = "service"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["tls", "certificate"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/security/protection/sec_002_tls/case.py"
+
+[[cases]]
+id = "SEC-003"
+title = "敏感信息与非法访问"
+area = "security"
+category = "protection"
+kind = "service"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["redaction", "query_scope"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/security/protection/sec_003_redaction/case.py"
+
+[[cases]]
+id = "SEC-004"
+title = "child 身份与实例凭据"
+area = "security"
+category = "children"
+kind = "job"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["auth", "attempt_isolation"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/security/children/sec_004_child_identity/case.py"

@@ -18,23 +18,26 @@ def load_entry(entry):
     spec.loader.exec_module(module)
     if not callable(getattr(module, "run", None)):
         raise RunError("Case entry must export run()")
-    return module.run
+    return module
 
 
-def execute(case, profile, runs_dir, transport="grpc"):
+def execute(case, profile, runs_dir, transport="grpc", client="python"):
     evidence = Evidence(runs_dir, case, profile)
     if profile == "local":
-        evidence.report.update(client="python", transport=transport)
+        evidence.report.update(client=client, transport=transport)
     print(f"RUN_ID={evidence.directory.name}\nRUN_DIR={evidence.directory}", flush=True)
     service = None
     result, reason, exit_code = "passed", None, 0
     try:
+        entry = load_entry(case.entry)
         if profile == "offline":
-            load_entry(case.entry)(evidence)
+            entry.run(evidence)
         else:
             service = LocalService(evidence)
+            if callable(getattr(entry, "prepare", None)):
+                entry.prepare(evidence, service)
             service.start()
-            load_entry(case.entry)(evidence, service)
+            entry.run(evidence, service)
     except KeyboardInterrupt:
         result, reason, exit_code = "interrupted", "Interrupted by Ctrl-C", 130
     except EnvironmentBlocked as exc:
@@ -72,7 +75,7 @@ def main():
     run = commands.add_parser("run", help="Run one executable case")
     run.add_argument("case_id")
     run.add_argument("--profile", choices=("local", "offline"), required=True)
-    run.add_argument("--client", choices=("python",))
+    run.add_argument("--client", choices=("python", "go"))
     run.add_argument("--transport", choices=("grpc", "http"))
     inspect = commands.add_parser("inspect", help="Read a run's recorded result")
     inspect.add_argument("run_id")
@@ -108,7 +111,13 @@ def main():
         if args.profile == "offline" and (args.client or args.transport):
             parser.error("offline cases do not accept client or transport")
         os.umask(0o077)
-        return execute(case, args.profile, runs_dir, args.transport or "grpc")
+        return execute(
+            case,
+            args.profile,
+            runs_dir,
+            args.transport or "grpc",
+            args.client or "python",
+        )
     return 0
 
 

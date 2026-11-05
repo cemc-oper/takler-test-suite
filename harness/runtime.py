@@ -80,7 +80,7 @@ def wait_for(description, check, *, timeout, interval=0.25):
 
 
 class LocalService:
-    """One owned WSL service with the Python CLI and an isolated config."""
+    """One owned WSL service, selected CLI, and isolated config."""
 
     def __init__(self, evidence, *, name="server"):
         self.evidence = evidence
@@ -97,6 +97,13 @@ class LocalService:
         self.grpc_port = None
         self.ports = []
         self.bin = Path(sys.executable).absolute().parent
+        self.client_kind = evidence.report.get("client", "python")
+        self.client_bin = (
+            Path(os.environ.get("SCENARIO_GO_CLIENT", "takler_client"))
+            if self.client_kind == "go"
+            else self.bin / "takler-client-py"
+        )
+        self.security = {}
         home = self.directory / "home"
         home.mkdir()
         self.env = {
@@ -139,6 +146,12 @@ class LocalService:
                 raise EnvironmentBlocked(
                     f"Missing {name} beside the selected Python interpreter"
                 )
+        if self.client_kind == "go" and (
+            not self.client_bin.is_absolute() or not os.access(self.client_bin, os.X_OK)
+        ):
+            raise EnvironmentBlocked(
+                "Go scenarios require an absolute executable SCENARIO_GO_CLIENT"
+            )
         sockets = []
         try:
             for _ in range(2 if self.transport == "http" else 1):
@@ -168,6 +181,7 @@ class LocalService:
                 {
                     "server": server_config,
                     "checkpoint": {"file": str(self.checkpoint), "interval": 600},
+                    "security": self.security,
                 },
                 indent=2,
             )
@@ -209,7 +223,12 @@ class LocalService:
             if lines and not self._owns_listener(lines):
                 raise RunError(f"Listener ownership mismatch on port {self.port}")
             if lines:
-                return self.client("ping", allow_failure=True).returncode == 0
+                result = self.client("ping", allow_failure=True)
+                if result.returncode:
+                    (self.directory / "readiness-error.log").write_text(
+                        result.stdout + result.stderr
+                    )
+                return result.returncode == 0
             return False
 
         wait_for("the owned Takler listener and ping", ready, timeout=20)
@@ -223,7 +242,7 @@ class LocalService:
         try:
             result = subprocess.run(
                 [
-                    str(self.bin / "takler-client-py"),
+                    str(self.client_bin),
                     name,
                     *(self.address if address is None else address),
                     *args,
