@@ -1,13 +1,13 @@
-# Takler Scenarios
+# Takler Test Suite
 
-Takler 的公开行为场景测试与操作演练项目，仓库名为 `takler-scenarios`。项目包含统一入口、场景目录、共享运行设施、任务模板和设施回归测试。
+Takler 的公开行为测试套件，支持自动化场景验证和操作演练，仓库名为 `takler-test-suite`。项目包含统一入口、场景目录、共享运行设施、任务模板和设施回归测试。
 
 当前接入 23 个用例：DEF-001–003、PAR-001–002，BAS-001–003、DPL-001–003，EXE-001–002、DEP-001–003、RES-001–002，以及 CTL-001–003、TIM-001–002。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。
 
 在本工作区，先在 `repo/takler/` 准备开发虚拟环境，再从工作区根目录进入本仓库执行：
 
 ```bash
-cd repo/takler-scenarios
+cd repo/takler-test-suite
 runner="$PWD/run.py"
 python="$(cd ../takler/.venv/bin && pwd)/python"
 python3 -B "$runner" validate
@@ -42,11 +42,13 @@ CTL 用例复用同一屏障与进程设施，核对节点暂停、服务 halted
 
 ## 工作区方案与历史记录
 
-本项目于 2026-11-05 从 `playground/scenarios/` 迁入 `repo/takler-scenarios/`，并初始化独立 Git 仓库。工作区方案与历次证据继续归档在 `doc/2026-10-10-scenario-testing/`，以下链接适用于配套工作区布局。历史日志、证据包和源码哈希保留原值，其中的旧目录名表示当次实跑位置；当前复跑命令已经更新为新路径。
+本项目于 2026-11-05 从 `playground/scenarios/` 迁入 `repo/` 并初始化独立 Git 仓库，最初名称为 `takler-scenarios`，随后按最终命名调整为 `takler-test-suite`，原有 Git 历史保留。工作区方案与历次证据继续归档在 `doc/2026-10-10-scenario-testing/`，以下链接适用于配套工作区布局。历史日志、证据包和源码哈希保留原值，其中的旧目录名表示当次实跑位置；当前复跑命令已经更新为新路径。
 
 [任务方案与推进状态](../../doc/2026-10-10-scenario-testing/scenario-testing-tasks.md)
 
 [项目迁移与独立目录复跑记录](../../doc/2026-10-10-scenario-testing/records/project-migration/project-migration.md)
+
+[最终命名与 Git 历史保留记录](../../doc/2026-10-10-scenario-testing/records/project-rename/project-rename.md)
 
 [SCN-02 复跑记录](../../doc/2026-10-10-scenario-testing/records/scn-02/scn-02-wsl-harness.md) · [SCN-03 离线复跑记录](../../doc/2026-10-10-scenario-testing/records/scn-03/scn-03-wsl-offline.md) · [SCN-04 服务与部署复跑记录](../../doc/2026-10-10-scenario-testing/records/scn-04/scn-04-wsl-service-deployment.md) · [SCN-05 执行、依赖与资源复跑记录](../../doc/2026-10-10-scenario-testing/records/scn-05/scn-05-wsl-execution-dependencies-resources.md)
 
