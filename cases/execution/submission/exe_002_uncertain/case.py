@@ -77,7 +77,8 @@ if test -f stop; then exit 0; fi
         shim = fault_bin / "orvix"
         # Preserve the public direct-orvix command shape. Real orvix submits first;
         # only its successful reply is replaced with a deliberate nonzero exit.
-        shim.write_text(f"""#!{sys.executable}
+        reply = fault_bin / "orvix_reply.py"
+        reply.write_text(f"""
 import json
 import subprocess
 import sys
@@ -90,6 +91,13 @@ with Path({str(jobs.data / "submit-calls.jsonl")!r}).open("a") as stream:
     stream.write(json.dumps(receipt) + "\\n")
 raise SystemExit(73 if result.returncode == 0 else result.returncode)
 """)
+        shim.write_text(
+            "#!/bin/sh\nexec "
+            + shlex.quote(sys.executable)
+            + " "
+            + shlex.quote(str(reply))
+            + ' "$@"\n'
+        )
         shim.chmod(0o700)
         flow = jobs.flow("uncertain")
         flow.add_limit("work", 1)

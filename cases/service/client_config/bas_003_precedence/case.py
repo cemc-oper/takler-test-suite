@@ -58,7 +58,22 @@ def run(evidence, service):
             "TAKLER_CONNECT_FILE": str(evidence.directory / "absent.yaml"),
         }
         failure = service.client("ping", env=missing, address=(), allow_failure=True)
-        missing_result = rejected(failure, "FileNotFoundError", 3)
+        if service.client_kind == "go":
+            require(
+                failure.returncode == 1
+                and not failure.stdout
+                and failure.stderr.startswith("cannot load the connect config ")
+                and str(evidence.directory / "absent.yaml") in failure.stderr
+                and "no such file or directory" in failure.stderr,
+                "Go did not reject the missing connect config before connecting",
+            )
+            missing_result = {"category": "missing_connect_config", "exit_code": 1}
+        else:
+            missing_result = rejected(failure, "FileNotFoundError", 3)
+        evidence.write_json(
+            "missing-config.json",
+            {**missing_result, "stdout": failure.stdout, "stderr": failure.stderr},
+        )
         require(
             service.env == original and target(service.env) == "A",
             "Per-call settings leaked",

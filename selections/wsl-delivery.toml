@@ -1,0 +1,28 @@
+schema_version = 1
+name = "WSL automatic delivery baseline"
+
+[[groups]]
+name = "offline"
+profile = "offline"
+cases = ["DEF-001", "DEF-002", "DEF-003", "PAR-001", "PAR-002"]
+
+[[groups]]
+name = "python-grpc"
+profile = "local"
+client = "python"
+transport = "grpc"
+cases = [
+    "BAS-001", "BAS-002", "BAS-003", "DPL-001", "DPL-002", "DPL-003",
+    "EXE-001", "EXE-002", "EXE-003", "DEP-001", "DEP-002", "DEP-003",
+    "RES-001", "RES-002", "CTL-001", "CTL-002", "CTL-003", "TIM-001", "TIM-002",
+    "QRY-001", "QRY-002", "QRY-003", "QRY-004", "QRY-005",
+    "SEC-001", "SEC-002", "SEC-003", "SEC-004",
+    "RCV-001", "RCV-002", "RCV-003", "RCV-004",
+]
+
+[[groups]]
+name = "go-http"
+profile = "local"
+client = "go"
+transport = "http"
+cases = ["BAS-003", "DPL-003", "DEP-001", "RES-002", "QRY-003", "SEC-002", "SEC-004", "RCV-001", "EXE-003"]

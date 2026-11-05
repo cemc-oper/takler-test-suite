@@ -2,6 +2,8 @@
 
 Takler 的公开行为测试套件，支持自动化场景验证和操作演练，仓库名为 `takler-test-suite`。项目包含统一入口、场景目录、共享运行设施、任务模板和设施回归测试。
 
+[快速开始](docs/quickstart.md) · [基线与安装](docs/baseline.md) · [用例和覆盖索引](docs/coverage.md) · [失败排查与清理](docs/troubleshooting.md) · [人工演练](docs/operator-exercise.md)
+
 当前接入 37 个用例：DEF-001–003、PAR-001–002，BAS-001–003、DPL-001–003，EXE-001–003、DEP-001–003、RES-001–002，CTL-001–003、TIM-001–002，QRY-001–005、SEC-001–004，以及 RCV-001–004。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。SEC-002 另需 `openssl`，EXE-003 另需同环境中的 takflow 和绝对路径 `SCENARIO_ORVIX_BIN`。
 
 在本工作区，先在 `repo/takler/` 准备开发虚拟环境，再从工作区根目录进入本仓库执行：
@@ -97,3 +99,5 @@ EXE-003 已接入真实 takflow → Takler → orvix local 的成功与受控失
 [SCN-08 重启恢复与组合故障](../../doc/2026-10-10-scenario-testing/records/scn-08/scn-08-wsl-recovery-faults.md)
 
 [SCN-09 跨组件流程与人工演练整合](../../doc/2026-10-10-scenario-testing/records/scn-09/scn-09-wsl-workflow-exercise.md)
+
+[SCN-11 使用文档、全新目录复现与选定范围交付](../../doc/2026-10-10-scenario-testing/records/scn-11/scn-11-wsl-delivery.md)

@@ -1,0 +1,63 @@
+# 用例、交付选择与证据索引
+
+本轮固定选择见 [wsl-delivery.toml](../selections/wsl-delivery.toml)：37 个可执行用例，每项一次基线运行，另加 9 个 Go/HTTP 代表组合，共 46 次自动运行。offline 与 online 严格分开。自动结果和实际 gRPC 组合 TUI 观察另行验收，不将历史运行计为本轮复现。
+
+| 用例 | 名称与实现 | 本轮选择 | 历史证据 |
+| --- | --- | --- | --- |
+| BAS-001 | [服务配置、启动与停止](../cases/service/lifecycle/bas_001_config_lifecycle/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-04/scn-04-wsl-service-deployment.md) |
+| BAS-002 | [传输选择与连接失败](../cases/service/transports/bas_002_connections/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-04/scn-04-wsl-service-deployment.md) |
+| BAS-003 | [客户端配置与环境隔离](../cases/service/client_config/bas_003_precedence/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-04/scn-04-wsl-service-deployment.md) |
+| CTL-001 | [节点与服务暂停](../cases/operations/controls/ctl_001_pause/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
+| CTL-002 | [重排与旧实例隔离](../cases/operations/controls/ctl_002_requeue/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
+| CTL-003 | [force 与批量控制](../cases/operations/controls/ctl_003_force_batch/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
+| DEF-001 | [离线流程树构建](../cases/definition/structure/def_001_flow_tree/case.py) | offline | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-03/scn-03-wsl-offline.md) |
+| DEF-002 | [离线非法定义检查](../cases/definition/structure/def_002_invalid_definition/case.py) | offline | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-03/scn-03-wsl-offline.md) |
+| DEF-003 | [定义导出与离线重建](../cases/definition/serialization/def_003_round_trip/case.py) | offline | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-03/scn-03-wsl-offline.md) |
+| DEP-001 | [顺序依赖与汇合](../cases/scheduling/dependencies/dep_001_fork_join/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-05/scn-05-wsl-execution-dependencies-resources.md) |
+| DEP-002 | [事件放行](../cases/scheduling/dependencies/dep_002_event_gate/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-05/scn-05-wsl-execution-dependencies-resources.md) |
+| DEP-003 | [进度阈值与组合条件](../cases/scheduling/dependencies/dep_003_event_meter/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-05/scn-05-wsl-execution-dependencies-resources.md) |
+| DPL-001 | [流程加载与部署核对](../cases/execution/deployment/dpl_001_load/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-04/scn-04-wsl-service-deployment.md) |
+| DPL-002 | [非法与重复部署](../cases/execution/deployment/dpl_002_invalid_load/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-04/scn-04-wsl-service-deployment.md) |
+| DPL-003 | [流程更新与替换保护](../cases/execution/deployment/dpl_003_replace/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-04/scn-04-wsl-service-deployment.md) |
+| EXE-001 | [单任务真实执行](../cases/execution/submission/exe_001_local_shell/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-05/scn-05-wsl-execution-dependencies-resources.md) |
+| EXE-002 | [失败与提交结果未知](../cases/execution/submission/exe_002_uncertain/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
+| EXE-003 | [takflow、Takler 与 orvix 业务链路](../cases/execution/submission/exe_003_workflow/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-09/scn-09-wsl-workflow-exercise.md) |
+| PAR-001 | [参数继承与覆盖](../cases/definition/parameters/par_001_inheritance/case.py) | offline | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-03/scn-03-wsl-offline.md) |
+| PAR-002 | [模板、include 与脚本准备](../cases/definition/templates/par_002_render/case.py) | offline | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-03/scn-03-wsl-offline.md) |
+| QRY-001 | [范围摘要与实时详情](../cases/operations/queries/qry_001_scopes/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| QRY-002 | [增量、长会话与重连](../cases/operations/queries/qry_002_sessions/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| QRY-003 | [同版本完整详细读取](../cases/operations/queries/qry_003_full_snapshot/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| QRY-004 | [CLI 展示与独立 TUI 观察](../cases/operations/presentation/qry_004_cli/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| QRY-005 | [实例输出定位与本地查看](../cases/operations/presentation/qry_005_outputs/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| RCV-001 | [正常停机与同地址恢复](../cases/recovery/restoring/rcv_001_restart/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-08/scn-08-wsl-recovery-faults.md) |
+| RCV-002 | [主备损坏与启动拒绝](../cases/recovery/restoring/rcv_002_backup/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-08/scn-08-wsl-recovery-faults.md) |
+| RCV-003 | [SIGKILL 丢失窗口与外部进程](../cases/recovery/crash_windows/rcv_003_sigkill/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-08/scn-08-wsl-recovery-faults.md) |
+| RCV-004 | [周期写失败与组合暂停](../cases/recovery/saving/rcv_004_write_failure/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-08/scn-08-wsl-recovery-faults.md) |
+| RES-001 | [单资源并发限制](../cases/scheduling/resources/res_001_shared_limit/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-05/scn-05-wsl-execution-dependencies-resources.md) |
+| RES-002 | [跨流程资源竞争](../cases/scheduling/resources/res_002_cross_flow/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-05/scn-05-wsl-execution-dependencies-resources.md) |
+| SEC-001 | [操作凭据与授权](../cases/security/operators/sec_001_operator/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| SEC-002 | [TLS 与证书验证](../cases/security/protection/sec_002_tls/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| SEC-003 | [敏感信息与非法访问](../cases/security/protection/sec_003_redaction/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| SEC-004 | [child 身份与实例凭据](../cases/security/children/sec_004_child_identity/case.py) | Python/gRPC；Go/HTTP | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-07/scn-07-wsl-query-security-matrix.md) |
+| TIM-001 | [当前时间条件](../cases/scheduling/time_repeat/tim_001_wall_time/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
+| TIM-002 | [当前循环与轮次身份](../cases/scheduling/time_repeat/tim_002_repeat_date/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
+
+## 本轮使用范围
+
+- 已实现：DEF/PAR、BAS/DPL、EXE、DEP/RES、CTL/TIM、QRY、SEC、RCV 共 37 项；本轮运行结果逐项见 [SCN-11 交付记录](../../../doc/2026-10-10-scenario-testing/records/scn-11/scn-11-wsl-delivery.md)。
+- 自动集合中，所有在线用例复现 Python/gRPC；Go/HTTP 只复现表中 9 项。其他组合若有历史实跑，以上链接保持当轮范围，不推定全体 37 项都验证四组合。
+- 人工必测：本次新建的 EXE-003 + QRY-004 组合，使用 Python TUI/gRPC、真实 PTY 键鼠、原生 Screenshot SVG/PNG，核对选择/展开、成功与失败、queued 未尝试、active 身份、stale 和恢复，退出及清理另有报告；由代理操作终端并查看截图，不表示独立真人签字。
+- 历史人工：SCN-07 的 QRY-004 gRPC/HTTP 交互记录继续可追溯。SCN-09 的“未取得组合截图”保持原始记录，本轮 gRPC 新证据单独归档；新组合 HTTP 仍未核验，Go TUI 不适用。
+
+## 未实现、未覆盖和失败的处理
+
+| 分类 | 具体范围 | 本轮处理 |
+| --- | --- | --- |
+| 未实现/暂停 | CAP-001–003：大树规模、持续混合负载、长期趋势 | 未放入可执行 catalog；SCN-10 继续另行排期，不作性能/容量承诺 |
+| 未覆盖环境 | Windows 原生执行、远程/HPC 调度器、远程输出读取 | 仅 WSL 本机 Shell/orvix local 与本地文件系统，不外推 |
+| 未覆盖组合 | 表外 Go/HTTP/Python HTTP/Go gRPC 的本轮重跑、新组合 HTTP TUI | 引用历史边界，标为本轮未复现或未核验 |
+| 安装边界 | 空缓存机器的完整离线安装 | 本轮构建新 wheel/venv，依赖来自已准备基线，记录此限制 |
+| 不适用 | offline 的服务/客户端/传输；Go 的 TUI | 不通过伪造入口补齐 |
+| 环境阻塞/失败 | 选定必测项缺入口、断言错误、清理不完整 | 记录失败或阻塞，批量非零；保留原报告，修正后使用新目录重跑 |
+
+初次复现暴露 EXE-002 含空格解释器 shebang 和 BAS-003 Python/Go 缺失配置诊断差异，修正范围限于场景设施。失败/中断批次保留，最终验收只采用修正后新目录中的完整批次，不能用挑出成功日志替代整批通过。

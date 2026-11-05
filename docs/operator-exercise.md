@@ -55,4 +55,4 @@ printf 'stop\n' > "$control"    # 中断演练、释放受控作业并关闭；�
 
 若服务正因 pause-listener 停止，finish/stop/Ctrl-C 均先恢复该服务进程再清理。不要手工删除目录代替清理。退出后核对 `report.json` 的 cleanup、`process-intervals.json` 中全部进程退出，以及监听端口释放。若准备期间失败，服务同样由入口收尾。
 
-`exercise-ready.json` 将 TUI 子检查标为 `pending_observation`。启动 TUI、CLI 自动通过或 finish 成功都不会自动把人工观察改成通过。观察者应单独保存运行 ID、客户端版本、观察项、实际结果与截图；本轮组合界面未完成截图核验，已有 QRY-004 人工记录仍在 SCN-07，不能替代新组合的逐项观察。
+`exercise-ready.json` 将 TUI 子检查标为 `pending_observation`。启动 TUI、CLI 自动通过或 finish 成功都不会自动把人工观察改成通过。观察者应单独保存运行 ID、客户端版本、观察项、实际结果与截图。SCN-09 当轮未完成组合截图核验；SCN-11 在新的 gRPC 组合运行中补齐选择、展开、complete/aborted/queued/active、stale 与恢复的实际终端截图，记录在 [交付证据](../../../doc/2026-10-10-scenario-testing/records/scn-11/scn-11-wsl-delivery.md)。该记录不表示 HTTP 新组合或独立真人复核通过；旧记录保持原样，新运行仍需自己的观察结果。
