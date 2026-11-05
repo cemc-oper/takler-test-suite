@@ -139,6 +139,19 @@ def test_wait_timeout():
         wait_for("missing condition", lambda: False, timeout=0.02)
 
 
+def test_helper_cleanup_refuses_a_live_service(tmp_path, monkeypatch):
+    pytest.importorskip("takler")
+    from harness.recovery import cleanup_service_helpers
+
+    case = load_catalog(ROOT / "catalog.toml")["RCV-003"]
+    evidence = Evidence(tmp_path, case, "local")
+    send = Mock()
+    monkeypatch.setattr(subprocess, "run", send)
+    with pytest.raises(RunError, match="server is still alive"):
+        cleanup_service_helpers(evidence, os.getpid(), evidence.directory)
+    send.assert_not_called()
+
+
 def test_security_prepare_failure_does_not_start_service(tmp_path, monkeypatch):
     entry = tmp_path / "prepare_failure.py"
     entry.write_text(
@@ -240,6 +253,54 @@ needs_takler = pytest.mark.skipif(
     not (Path(sys.executable).parent / "takler-server").is_file(),
     reason="requires the Takler Python environment",
 )
+
+
+@needs_takler
+@pytest.mark.parametrize("transport", ("grpc", "http"))
+def test_restart_keeps_addresses_and_recovers_halted(tmp_path, transport):
+    case = load_catalog(ROOT / "catalog.toml")["RCV-001"]
+    evidence = Evidence(tmp_path, case, "local")
+    evidence.report.update(client="python", transport=transport)
+    service = LocalService(evidence)
+    try:
+        service.start()
+        first_ports = list(service.ports)
+        first_pid = service.process.pid
+        service.stop()
+        service.start()
+        assert service.ports == first_ports and service.process.pid != first_pid
+        value = json.loads(service.client("server-status").stdout)
+        assert value["status"] == "halted" and value["halt_causes"] == ["recovery"]
+        assert value["restore_summary"]["source"] == "primary"
+    finally:
+        service.stop()
+    assert len(evidence.report["server_history"]) == 2
+    assert len(evidence.report["cleanup_history"]) == 2
+    assert all(
+        item["exit_expected"] and item["port_free"]
+        for item in evidence.report["cleanup_history"]
+    )
+
+
+@needs_takler
+def test_expected_checkpoint_refusal_is_not_a_ready_service(tmp_path):
+    case = load_catalog(ROOT / "catalog.toml")["RCV-002"]
+    evidence = Evidence(tmp_path, case, "local")
+    service = LocalService(evidence)
+    service.checkpoint.write_bytes(b"invalid checkpoint")
+    try:
+        service.start(expect_rejection=True)
+        assert service.process.returncode == 1 and not service._listeners()
+    finally:
+        service.stop()
+    events = [
+        json.loads(line)
+        for line in (evidence.directory / "events.jsonl").read_text().splitlines()
+    ]
+    assert not any(event["kind"] == "server_ready" for event in events)
+    assert any(event["kind"] == "server_rejected" for event in events)
+    assert evidence.report["cleanup"]["exit_expected"]
+    assert evidence.report["cleanup"]["expected_returncode"] == 1
 
 
 @needs_takler

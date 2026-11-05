@@ -415,3 +415,55 @@ capabilities = ["auth", "attempt_isolation"]
 profiles = ["local"]
 status = "executable"
 entry = "cases/security/children/sec_004_child_identity/case.py"
+
+[[cases]]
+id = "RCV-001"
+title = "正常停机与同地址恢复"
+area = "recovery"
+category = "restoring"
+kind = "job"
+difficulty = "L3"
+roles = ["operator"]
+capabilities = ["restart", "child_reporting"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/recovery/restoring/rcv_001_restart/case.py"
+
+[[cases]]
+id = "RCV-002"
+title = "主备损坏与启动拒绝"
+area = "recovery"
+category = "restoring"
+kind = "job"
+difficulty = "L3"
+roles = ["operator"]
+capabilities = ["backup", "corruption", "startup_refusal"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/recovery/restoring/rcv_002_backup/case.py"
+
+[[cases]]
+id = "RCV-003"
+title = "SIGKILL 丢失窗口与外部进程"
+area = "recovery"
+category = "crash_windows"
+kind = "job"
+difficulty = "L3"
+roles = ["operator"]
+capabilities = ["sigkill", "loss_window", "process_reconciliation"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/recovery/crash_windows/rcv_003_sigkill/case.py"
+
+[[cases]]
+id = "RCV-004"
+title = "周期写失败与组合暂停"
+area = "recovery"
+category = "saving"
+kind = "job"
+difficulty = "L3"
+roles = ["operator"]
+capabilities = ["checkpoint_failure", "permissions", "halt_causes"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/recovery/saving/rcv_004_write_failure/case.py"

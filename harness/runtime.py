@@ -91,8 +91,11 @@ class LocalService:
         self.directory.mkdir(exist_ok=True)
         self.transport = evidence.report.get("transport", "grpc")
         self.checkpoint = self.directory / "takler.check"
+        self.checkpoint_interval = 600
         self.config = self.directory / "connect.yaml"
         self.process = None
+        self.generation = 0
+        self.expected_returncode = 0
         self.port = None
         self.grpc_port = None
         self.ports = []
@@ -140,7 +143,8 @@ class LocalService:
             re.findall(r"pid=(\d+),", line) == [str(self.process.pid)] for line in lines
         )
 
-    def start(self):
+    def start(self, *, expect_rejection=False):
+        require(self.process is None, "Stop the owned service before restarting it")
         for name in ("takler-server", "takler-client-py"):
             if not os.access(self.bin / name, os.X_OK):
                 raise EnvironmentBlocked(
@@ -152,16 +156,17 @@ class LocalService:
             raise EnvironmentBlocked(
                 "Go scenarios require an absolute executable SCENARIO_GO_CLIENT"
             )
-        sockets = []
-        try:
-            for _ in range(2 if self.transport == "http" else 1):
-                sock = socket.socket(socket.AF_INET6)
-                sockets.append(sock)
-                sock.bind(("::", 0))
-                self.ports.append(sock.getsockname()[1])
-        finally:
-            for sock in sockets:
-                sock.close()
+        if not self.ports:
+            sockets = []
+            try:
+                for _ in range(2 if self.transport == "http" else 1):
+                    sock = socket.socket(socket.AF_INET6)
+                    sockets.append(sock)
+                    sock.bind(("::", 0))
+                    self.ports.append(sock.getsockname()[1])
+            finally:
+                for sock in sockets:
+                    sock.close()
         self.grpc_port = self.ports[0]
         self.port = self.ports[-1]
         if self._listeners():
@@ -180,7 +185,10 @@ class LocalService:
             json.dumps(
                 {
                     "server": server_config,
-                    "checkpoint": {"file": str(self.checkpoint), "interval": 600},
+                    "checkpoint": {
+                        "file": str(self.checkpoint),
+                        "interval": self.checkpoint_interval,
+                    },
                     "security": self.security,
                 },
                 indent=2,
@@ -192,7 +200,12 @@ class LocalService:
             "--config",
             str(self.config),
         ]
-        with (self.directory / "server.log").open("w") as log:
+        self.generation += 1
+        self.expected_returncode = 1 if expect_rejection else 0
+        log_name = (
+            "server.log" if self.generation == 1 else f"server-{self.generation}.log"
+        )
+        with (self.directory / log_name).open("w") as log:
             self.process = subprocess.Popen(
                 argv,
                 cwd=self.directory,
@@ -207,12 +220,42 @@ class LocalService:
             "ports": self.ports,
             "transport": self.transport,
             "config": str(self.config.relative_to(self.evidence.directory)),
+            "generation": self.generation,
+            "log": str(
+                (self.directory / log_name).relative_to(self.evidence.directory)
+            ),
+            "checkpoint": str(self.checkpoint.relative_to(self.evidence.directory)),
+            "checkpoint_interval": self.checkpoint_interval,
         }
         self.evidence.record("server_start", name=self.name, **details)
         if self.name == "server":
             self.evidence.report["server"] = details
+            self.evidence.report.setdefault("server_history", []).append(details)
         else:
             self.evidence.report.setdefault("peers", {})[self.name] = details
+
+        if expect_rejection:
+            samples = 0
+
+            def rejected():
+                nonlocal samples
+                samples += 1
+                require(not self._listeners(), "Rejected startup opened a listener")
+                return self.process.poll() is not None
+
+            wait_for("checkpoint startup refusal", rejected, timeout=20, interval=0.02)
+            require(
+                self.process.returncode == 1,
+                "Startup did not reject invalid checkpoints",
+            )
+            self.evidence.record(
+                "server_rejected",
+                name=self.name,
+                pid=self.process.pid,
+                listener_samples=samples,
+                returncode=1,
+            )
+            return
 
         def ready():
             if self.process.poll() is not None:
@@ -235,6 +278,23 @@ class LocalService:
         self.evidence.record(
             "server_ready", name=self.name, pid=self.process.pid, port=self.port
         )
+
+    def crash(self):
+        require(
+            self.process is not None and self.process.poll() is None,
+            "Crash requires the live owned service",
+        )
+        self.expected_returncode = -signal.SIGKILL
+        self.evidence.record(
+            "fault_signal", name=self.name, pid=self.process.pid, signal="SIGKILL"
+        )
+        self.process.kill()
+        self.process.wait(timeout=10)
+        require(
+            self.process.returncode == -signal.SIGKILL,
+            "Service did not exit from SIGKILL",
+        )
+        self.stop()
 
     def client(self, name, *args, allow_failure=False, address=None, env=None):
         # Log operation names and outcomes. Keep raw diagnostics in the private run directory.
@@ -293,13 +353,16 @@ class LocalService:
                 "forced": forced,
                 "port_free": not listeners,
                 "owned_listener_closed": not own_listener,
+                "expected_returncode": self.expected_returncode,
+                "exit_expected": process.returncode == self.expected_returncode,
             }
             if self.name == "server":
                 self.evidence.report["cleanup"] = outcome
+                self.evidence.report.setdefault("cleanup_history", []).append(outcome)
             else:
                 self.evidence.report.setdefault("peer_cleanup", {})[self.name] = outcome
             self.evidence.record("server_stop", name=self.name, **outcome)
-            if forced or own_listener or process.returncode != 0:
+            if forced or own_listener or not outcome["exit_expected"]:
                 raise RunError("Service did not shut down cleanly")
         finally:
             self.process = None
