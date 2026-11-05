@@ -1,0 +1,300 @@
+schema_version = 1
+
+[[cases]]
+id = "EXE-001"
+title = "单任务真实执行"
+area = "execution"
+category = "submission"
+kind = "job"
+difficulty = "L1"
+roles = ["developer", "operator"]
+capabilities = ["shell", "child_reporting"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/execution/submission/exe_001_local_shell/case.py"
+
+[[cases]]
+id = "DEF-001"
+title = "离线流程树构建"
+area = "definition"
+category = "structure"
+kind = "offline"
+difficulty = "L1"
+roles = ["developer"]
+capabilities = ["definition_api"]
+profiles = ["offline"]
+status = "executable"
+entry = "cases/definition/structure/def_001_flow_tree/case.py"
+
+[[cases]]
+id = "DEF-002"
+title = "离线非法定义检查"
+area = "definition"
+category = "structure"
+kind = "offline"
+difficulty = "L2"
+roles = ["developer"]
+capabilities = ["definition_api", "invalid_definition"]
+profiles = ["offline"]
+status = "executable"
+entry = "cases/definition/structure/def_002_invalid_definition/case.py"
+
+[[cases]]
+id = "DEF-003"
+title = "定义导出与离线重建"
+area = "definition"
+category = "serialization"
+kind = "offline"
+difficulty = "L1"
+roles = ["developer"]
+capabilities = ["definition_api", "serialization"]
+profiles = ["offline"]
+status = "executable"
+entry = "cases/definition/serialization/def_003_round_trip/case.py"
+
+[[cases]]
+id = "PAR-001"
+title = "参数继承与覆盖"
+area = "definition"
+category = "parameters"
+kind = "offline"
+difficulty = "L1"
+roles = ["developer"]
+capabilities = ["parameters", "variable_reference"]
+profiles = ["offline"]
+status = "executable"
+entry = "cases/definition/parameters/par_001_inheritance/case.py"
+
+[[cases]]
+id = "PAR-002"
+title = "模板、include 与脚本准备"
+area = "definition"
+category = "templates"
+kind = "offline"
+difficulty = "L2"
+roles = ["developer"]
+capabilities = ["parameters", "template_rendering"]
+profiles = ["offline"]
+status = "executable"
+entry = "cases/definition/templates/par_002_render/case.py"
+
+[[cases]]
+id = "BAS-001"
+title = "服务配置、启动与停止"
+area = "service"
+category = "lifecycle"
+kind = "service"
+difficulty = "L1"
+roles = ["operator"]
+capabilities = ["config", "lifecycle"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/service/lifecycle/bas_001_config_lifecycle/case.py"
+
+[[cases]]
+id = "BAS-002"
+title = "传输选择与连接失败"
+area = "service"
+category = "transports"
+kind = "service"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["transports", "connection_errors"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/service/transports/bas_002_connections/case.py"
+
+[[cases]]
+id = "BAS-003"
+title = "客户端配置与环境隔离"
+area = "service"
+category = "client_config"
+kind = "service"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["client_config", "environment"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/service/client_config/bas_003_precedence/case.py"
+
+[[cases]]
+id = "DPL-001"
+title = "流程加载与部署核对"
+area = "execution"
+category = "deployment"
+kind = "service"
+difficulty = "L1"
+roles = ["operator"]
+capabilities = ["deployment"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/execution/deployment/dpl_001_load/case.py"
+
+[[cases]]
+id = "DPL-002"
+title = "非法与重复部署"
+area = "execution"
+category = "deployment"
+kind = "service"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["deployment", "invalid_load"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/execution/deployment/dpl_002_invalid_load/case.py"
+
+[[cases]]
+id = "DPL-003"
+title = "流程更新与替换保护"
+area = "execution"
+category = "deployment"
+kind = "job"
+difficulty = "L2"
+roles = ["operator"]
+capabilities = ["replace", "identity"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/execution/deployment/dpl_003_replace/case.py"
+
+[[cases]]
+id = "DEP-001"
+title = "顺序依赖与汇合"
+area = "scheduling"
+category = "dependencies"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["triggers", "parallel_execution"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/scheduling/dependencies/dep_001_fork_join/case.py"
+
+[[cases]]
+id = "DEP-002"
+title = "事件放行"
+area = "scheduling"
+category = "dependencies"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["events", "child_reporting"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/scheduling/dependencies/dep_002_event_gate/case.py"
+
+[[cases]]
+id = "DEP-003"
+title = "进度阈值与组合条件"
+area = "scheduling"
+category = "dependencies"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["events", "meters", "triggers"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/scheduling/dependencies/dep_003_event_meter/case.py"
+
+[[cases]]
+id = "RES-001"
+title = "单资源并发限制"
+area = "scheduling"
+category = "resources"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["limits", "process_intervals"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/scheduling/resources/res_001_shared_limit/case.py"
+
+[[cases]]
+id = "RES-002"
+title = "跨流程资源竞争"
+area = "scheduling"
+category = "resources"
+kind = "job"
+difficulty = "L3"
+roles = ["developer", "operator"]
+capabilities = ["limits", "requeue", "process_intervals"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/scheduling/resources/res_002_cross_flow/case.py"
+
+[[cases]]
+id = "EXE-002"
+title = "失败与提交结果未知"
+area = "execution"
+category = "submission"
+kind = "job"
+difficulty = "L3"
+roles = ["developer", "operator"]
+capabilities = ["orvix_local", "submission_unknown", "failure"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/execution/submission/exe_002_uncertain/case.py"
+
+[[cases]]
+id = "CTL-001"
+title = "节点与服务暂停"
+area = "operations"
+category = "controls"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["pause", "halt", "child_reporting"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/controls/ctl_001_pause/case.py"
+
+[[cases]]
+id = "CTL-002"
+title = "重排与旧实例隔离"
+area = "operations"
+category = "controls"
+kind = "job"
+difficulty = "L3"
+roles = ["developer", "operator"]
+capabilities = ["requeue", "attempt_isolation"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/controls/ctl_002_requeue/case.py"
+
+[[cases]]
+id = "CTL-003"
+title = "force 与批量控制"
+area = "operations"
+category = "controls"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["force", "batch_results"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/operations/controls/ctl_003_force_batch/case.py"
+
+[[cases]]
+id = "TIM-001"
+title = "当前时间条件"
+area = "scheduling"
+category = "time_repeat"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["time", "slow", "wall_clock"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/scheduling/time_repeat/tim_001_wall_time/case.py"
+
+[[cases]]
+id = "TIM-002"
+title = "当前循环与轮次身份"
+area = "scheduling"
+category = "time_repeat"
+kind = "job"
+difficulty = "L2"
+roles = ["developer", "operator"]
+capabilities = ["repeat_date", "attempt_isolation"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/scheduling/time_repeat/tim_002_repeat_date/case.py"

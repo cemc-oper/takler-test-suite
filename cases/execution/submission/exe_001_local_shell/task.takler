@@ -1,0 +1,11 @@
+#!/bin/bash
+set -eu
+export TAKLER_HOST="{{ TAKLER_HOST }}"
+export TAKLER_PORT="{{ TAKLER_PORT }}"
+export TAKLER_NAME="{{ TAKLER_NAME }}"
+export TAKLER_ATTEMPT_ID="{{ TAKLER_ATTEMPT_ID }}"
+export TAKLER_PASS="{{ TAKLER_PASS }}"
+
+timeout --foreground 6s takler-client-py init --task-id "$$" --node-path "$TAKLER_NAME"
+printf '%s\n' SCN01_OK
+timeout --foreground 6s takler-client-py complete --node-path "$TAKLER_NAME"

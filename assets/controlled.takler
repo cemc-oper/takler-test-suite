@@ -1,0 +1,47 @@
+#!/bin/bash
+set -euo pipefail
+export TAKLER_HOST="{{ TAKLER_HOST }}"
+export TAKLER_PORT="{{ TAKLER_PORT }}"
+export TAKLER_NAME="{{ TAKLER_NAME }}"
+export TAKLER_ATTEMPT_ID="{{ TAKLER_ATTEMPT_ID }}"
+export TAKLER_PASS="{{ TAKLER_PASS }}"
+child() { timeout --foreground 6s takler-client-py "$@"; }
+child init --task-id "$$" --node-path "$TAKLER_NAME"
+abort_on_error() {
+    result=$?
+    trap - EXIT
+    if [ "$result" -ne 0 ]; then
+        child abort --node-path "$TAKLER_NAME" --reason "controlled shell exit=$result" || true
+    fi
+    exit "$result"
+}
+trap abort_on_error EXIT
+cd {{ SCENARIO_DATA_SHELL }}
+{{ BODY }}
+key="${TAKLER_NAME#/}"
+key="${key//\//.}.$TAKLER_ATTEMPT_ID"
+printf '%s\n' "$$" > "$key.pid.tmp"
+mv -- "$key.pid.tmp" "$key.pid"
+sequence=1
+while :; do
+    timeout --foreground 150s bash -c 'until test -f stop || test -f "$1"; do sleep 0.05; done' _ "$key.cmd$sequence"
+    if test -f stop; then exit 0; fi
+    action=$(cat "$key.cmd$sequence")
+    case "$action" in
+        event:*) child event --event-name "${action#event:}" ;;
+        meter:*) child meter --meter-name step --meter-value "${action#meter:}" ;;
+        success)
+            printf 'SCN05_OK %s %s\n' "$TAKLER_NAME" "$TAKLER_ATTEMPT_ID"
+            child complete --node-path "$TAKLER_NAME"
+            exit 0 ;;
+        failure)
+            printf 'SCN05_FAIL %s exit=7\n' "$TAKLER_NAME"
+            exit 7 ;;
+        quiet)
+            printf 'SCN05_QUIET %s\n' "$TAKLER_NAME"
+            exit 0 ;;
+        *) exit 2 ;;
+    esac
+    touch "$key.ack$sequence"
+    sequence=$((sequence + 1))
+done
