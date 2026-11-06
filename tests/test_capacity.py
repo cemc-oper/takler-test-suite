@@ -45,13 +45,36 @@ def test_external_monitor_observes_checkpoint_rename(tmp_path, monkeypatch):
         wait_for("resource observer started", lambda: resources.samples, timeout=3)
         temporary = item.directory / "takler.check.tmp.test"
         temporary.write_bytes(b"independent filesystem observation")
+        start = wait_for(
+            "checkpoint temp create",
+            lambda: resources.latest_checkpoint_start,
+            timeout=3,
+        )
         temporary.replace(service.checkpoint)
         wait_for("checkpoint primary rename", lambda: resources.windows, timeout=3)
     summary = json.loads((item.directory / "resource-summary.json").read_text())
     assert summary["error"] is None
     event = summary["checkpoint_windows"][0]
+    assert event["temp_name"] == start["temp_name"] == temporary.name
+    assert event["start_upper_ns"] == start["start_upper_ns"]
+    assert event["matched_temp_rename"]
     assert event["start_lower_ns"] <= event["start_upper_ns"] <= event["end_upper_ns"]
     assert event["bytes"] == len(b"independent filesystem observation")
+
+
+def test_external_monitor_distinguishes_unrelated_temp_from_publication(tmp_path):
+    item = evidence(tmp_path)
+    service = LocalService(item)
+    prepare(item, service)
+    with Resources(item, service) as resources:
+        wait_for("resource observer started", lambda: resources.samples, timeout=3)
+        unrelated = item.directory / "unrelated"
+        unrelated.write_bytes(b"new")
+        (item.directory / "takler.check.tmp.abandoned").touch()
+        wait_for("temp CREATE", lambda: resources.latest_checkpoint_start, timeout=3)
+        unrelated.replace(service.checkpoint)
+        wait_for("primary rename", lambda: resources.windows, timeout=3)
+    assert not resources.windows[0]["matched_temp_rename"]
 
 
 def test_resource_limit_is_reported_without_signalling_other_processes(

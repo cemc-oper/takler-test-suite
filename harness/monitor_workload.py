@@ -285,7 +285,9 @@ class MonitorWorkload:
     def __enter__(self):
         with ExitStack() as setup:
             self.jobs = Jobs(self.evidence, self.service, scope=SCOPE, depth=1)
-            detached = bool(self.cfg.get("poll_cycles"))
+            detached = bool(
+                self.cfg.get("poll_cycles") or self.cfg.get("checkpoint_sync_waves")
+            )
             self.resources = setup.enter_context(
                 Resources(
                     self.evidence,

@@ -10,6 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from harness import monitor_workload
+from harness.monitor_checkpoint import checkpoint_refreshes
 from harness.monitor_tree import tree_counts
 from harness.monitor_tui import TuiWindow
 from harness.monitor_windows import HeadlessWindow, MonitorGroup
@@ -23,6 +24,11 @@ def prepare(evidence, service):
     cfg = service.monitor_config
     cycles = cfg.get("poll_cycles", 0)
     require(type(cycles) is int and cycles >= 0, "Invalid steady refresh count")
+    waves = cfg.get("checkpoint_sync_waves", 0)
+    require(type(waves) is int and waves >= 0, "Invalid checkpoint sync wave count")
+    require(
+        not (cycles and waves), "Use separate runs for steady polls and checkpoint sync"
+    )
     if cycles:
         require(
             type(cfg.get("refresh_seconds")) is int and cfg["refresh_seconds"] > 0,
@@ -183,5 +189,9 @@ def run(evidence, service):
                     "reconnect",
                 )
                 steady_refreshes(workload, group, service.monitor_config)
+                waves = service.monitor_config.get("checkpoint_sync_waves", 0)
+                sync = checkpoint_refreshes(workload, group, waves) if waves else None
                 checks = workload.finish(group.rows)
+                if sync:
+                    checks["checkpoint_sync"] = sync
         evidence.record_checks(windows=len(windows), **checks)

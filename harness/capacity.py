@@ -117,6 +117,7 @@ class Resources:
         self.evidence, self.service, self.config = evidence, service, service.capacity
         self.job_roots = job_roots
         self.phase, self.error, self.samples, self.windows = "setup", None, [], []
+        self.latest_checkpoint_start = None
         self.done = threading.Event()
         self.thread = threading.Thread(target=self.observe, daemon=True)
 
@@ -155,17 +156,18 @@ class Resources:
             library = ctypes.CDLL("libc.so.6", use_errno=True)
             descriptor = library.inotify_init1(os.O_NONBLOCK | os.O_CLOEXEC)
             require(descriptor >= 0, "Cannot open inotify")
+            previous = time.monotonic_ns()
             require(
                 library.inotify_add_watch(
                     descriptor,
                     os.fsencode(self.evidence.directory),
-                    0x100 | 0x80 | 0x4000,
+                    0x100 | 0x40 | 0x80 | 0x4000,
                 )
                 >= 0,
                 "Cannot watch private checkpoint directory",
             )
             pending = None
-            previous = time.monotonic_ns()
+            move_cookie = None
             sample_at = disk_at = 0
             disk_bytes = 0
             with (
@@ -176,16 +178,23 @@ class Resources:
             ):
                 while not self.done.is_set():
                     select.select([descriptor], [], [], 0.1)
+                    raw = bytearray()
+                    while True:
+                        empty_read_lower = time.monotonic_ns()
+                        try:
+                            raw.extend(os.read(descriptor, 65536))
+                        except BlockingIOError:
+                            break
                     now = time.monotonic_ns()
-                    try:
-                        raw = os.read(descriptor, 65536)
-                    except BlockingIOError:
-                        raw = b""
                     offset = 0
                     while offset < len(raw):
-                        _, mask, _, length = struct.unpack_from("iIII", raw, offset)
+                        _, mask, cookie, length = struct.unpack_from(
+                            "iIII", raw, offset
+                        )
                         name = os.fsdecode(
-                            raw[offset + 16 : offset + 16 + length].split(b"\0")[0]
+                            bytes(raw[offset + 16 : offset + 16 + length]).split(b"\0")[
+                                0
+                            ]
                         )
                         offset += 16 + length
                         require(
@@ -197,9 +206,14 @@ class Resources:
                             and mask & 0x100
                         ):
                             pending = {
+                                "temp_name": name,
                                 "start_lower_ns": previous,
                                 "start_upper_ns": now,
                             }
+                            move_cookie = None
+                            self.latest_checkpoint_start = pending
+                        if mask & 0x40 and pending and name == pending["temp_name"]:
+                            move_cookie = cookie
                         if name == self.service.checkpoint.name and mask & 0x80:
                             value = {
                                 **(
@@ -211,6 +225,9 @@ class Resources:
                                 ),
                                 "end_lower_ns": previous,
                                 "end_upper_ns": now,
+                                "matched_temp_rename": bool(
+                                    cookie and cookie == move_cookie
+                                ),
                                 "observed_at": timestamp(),
                                 "bytes": self.service.checkpoint.stat().st_size,
                             }
@@ -218,7 +235,9 @@ class Resources:
                             events.write(json.dumps(value) + "\n")
                             events.flush()
                             pending = None
-                    previous = now
+                            move_cookie = None
+                    # A subsequent event cannot predate this last empty read.
+                    previous = empty_read_lower
                     if now < sample_at:
                         continue
                     sample_at = now + int(self.config["sample_seconds"] * 1e9)
