@@ -178,15 +178,17 @@ def require_helper_runtime():
         )
     except (OSError, subprocess.SubprocessError) as exc:
         raise EnvironmentBlocked(
-            "RCV-003 requires WSL system Python with Linux pidfd APIs"
+            "Checkpoint helper cleanup requires system Python with Linux pidfd APIs"
         ) from exc
     if result.returncode:
         raise EnvironmentBlocked(
-            "RCV-003 requires WSL system Python with Linux pidfd APIs"
+            "Checkpoint helper cleanup requires system Python with Linux pidfd APIs"
         )
 
 
-def cleanup_service_helpers(evidence, server_pid, directory):
+def cleanup_service_helpers(
+    evidence, server_pid, directory, *, event="service_helpers_after_sigkill"
+):
     """Clean only helpers bound to the dead owned service's group and cwd."""
     require(
         process_identity(server_pid) is None,
@@ -217,7 +219,7 @@ def cleanup_service_helpers(evidence, server_pid, directory):
         require(False, "Owned checkpoint helper cleanup failed; see helper-error.log")
     value = json.loads(result.stdout)
     evidence.record(
-        "service_helpers_after_sigkill",
+        event,
         server_pid=server_pid,
         observed_at=value["observed_at"],
         helpers=value["helpers"],

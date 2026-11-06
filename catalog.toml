@@ -519,3 +519,16 @@ capabilities = ["endurance", "slow_consumers", "recovery", "resources", "slow"]
 profiles = ["local"]
 status = "executable"
 entry = "cases/capacity/endurance/cap_003_endurance/case.py"
+
+[[cases]]
+id = "CAP-004"
+title = "独立监控窗口、任务上报与周期保存"
+area = "capacity"
+category = "mixed_load"
+kind = "job"
+difficulty = "L4"
+roles = ["developer", "operator", "administrator"]
+capabilities = ["independent_monitors", "tui", "query_since", "checkpoint", "resources"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/capacity/mixed_load/cap_004_monitors/case.py"

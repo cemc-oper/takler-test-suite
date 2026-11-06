@@ -1,6 +1,6 @@
 # 用例、交付选择与证据索引
 
-当前 catalog 共 40 个可执行用例。SCN-11 固定选择见 [wsl-delivery.toml](../selections/wsl-delivery.toml)：其中 37 项各一次基线运行，另加 9 个 Go/HTTP 代表组合，共 46 次自动运行。offline 与 online 严格分开。自动结果和实际 gRPC 组合 TUI 观察另行验收，不将历史运行计为本轮复现。新增的 3 项 CAP 使用独立的 SCN-10 冻结配置和长时运行，不自动扩入原选择。
+当前 catalog 共 41 个可执行用例。SCN-11 固定选择包括 37 项基线运行和 9 个 Go/HTTP 代表组合，共 46 次自动运行。offline 与 online 分开验收。CAP-001–003 的容量基线与 CAP-004 的独立监控窗口场景各有专用入口和记录。[SCN-11 选择清单](../selections/wsl-delivery.toml)
 
 | 用例 | 名称与实现 | 本轮选择 | 历史证据 |
 | --- | --- | --- | --- |
@@ -51,6 +51,16 @@
 | CAP-003 | [耐久与资源回收](../cases/capacity/endurance/cap_003_endurance/case.py) | Python/gRPC；本地真实 Shell | 通过：7,200 秒、240 轮、960 个真实作业、135 秒回收和冻结趋势门槛；保留快照上限补充通过 |
 
 负载、资源门槛和测量口径见 [容量运行说明](capacity.md)。三项采用共享开发主机，未隔离其他任务，不作独占性能基准；内部 worker 队列精确上限未测。独立验收、失败批次、源码哈希、复跑命令和公开证据见 [SCN-10 记录](../../../doc/2026-10-10-scenario-testing/records/scn-10/scn-10-wsl-capacity.md)。
+
+## 独立监控窗口
+
+| 用例 | 默认组合 | 验证范围 |
+| --- | --- | --- |
+| [CAP-004 独立监控窗口](../cases/capacity/mixed_load/cap_004_monitors/case.py) | Python/gRPC，34 节点，1 个真实 Textual TUI 和 3 个无界面读者 | 四套独立身份的查询、变更可见性、拒绝归属、有效水位重连，期间有真实 Shell 作业和周期保存 |
+
+2026-11-06 小树验收通过，运行编号 `cap-004-sncxuw2n`，20/20 正常读操作首试成功，受控越权拒绝单列。保存两次，作业和服务正常回收。[小树实测及此前的收尾失败](../../../doc/2026-11-06-multi-window-monitoring/t5-small-tree.md)
+
+CAP-004 默认运行用于验收工具。业务树的 4、10、20 窗口及 100K 叶任务余量需要安排空闲时段另行实跑。窗口数由测试配置指定。[容量运行说明](capacity.md#cap-004-独立监控窗口) · [工作区实施方案及验收记录](../../../doc/2026-11-06-multi-window-monitoring/README.md)
 
 ## SCN-11 使用范围
 

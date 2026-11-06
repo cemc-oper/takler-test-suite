@@ -169,7 +169,11 @@ def test_security_prepare_failure_does_not_start_service(tmp_path, monkeypatch):
     entry.write_text(
         "from harness.runtime import RunError\n"
         "def prepare(evidence, service):\n"
+        "    (evidence.directory / 'owned-key').touch()\n"
         "    raise RunError('fixture preparation failed')\n"
+        "def cleanup(evidence, service):\n"
+        "    (evidence.directory / 'owned-key').unlink()\n"
+        "    evidence.report['key_removed'] = True\n"
         "def run(evidence, service):\n"
         "    raise AssertionError('case must not run')\n"
     )
@@ -180,6 +184,8 @@ def test_security_prepare_failure_does_not_start_service(tmp_path, monkeypatch):
     start.assert_not_called()
     report = read_report(tmp_path / "runs")
     assert report["reason"] == "fixture preparation failed"
+    assert report["key_removed"]
+    assert not list((tmp_path / "runs").glob("*/owned-key"))
     assert "server" not in report
 
 

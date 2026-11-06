@@ -36,10 +36,11 @@ def peak(intervals, start, end):
 
 
 class Jobs:
-    def __init__(self, evidence, service, *, scope="/"):
+    def __init__(self, evidence, service, *, scope="/", depth=None):
         self.evidence = evidence
         self.service = service
         self.scope = scope
+        self.depth = depth
         self.data = evidence.directory / "data"
         self.data.mkdir()
         self.intervals = {}
@@ -139,16 +140,20 @@ class Jobs:
             task.add_trigger(trigger)
         return task
 
-    def load(self, *flows, begin=True):
+    def load(self, *flows, begin=True, indent=2):
         for flow in flows:
-            target = write_definition(self.evidence, flow, f"{flow.name}.json")
+            target = write_definition(
+                self.evidence, flow, f"{flow.name}.json", indent=indent
+            )
             self.service.client("load", str(target))
         if begin:
             for flow in flows:
                 self.service.client("begin", flow.name)
 
     def view(self, label):
-        nodes = snapshot(self.evidence, self.service, label, scope=self.scope)
+        nodes = snapshot(
+            self.evidence, self.service, label, scope=self.scope, depth=self.depth
+        )
         for path, node in nodes.items():
             groups = node["groups"]
             runtime = groups.get("runtime", {})

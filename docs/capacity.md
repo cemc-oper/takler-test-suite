@@ -57,3 +57,30 @@ python=/absolute/path/to/takler-env/bin/python
 `rounds.jsonl`、阶段快照、进程区间、输出和最终 checks 证明真实推进。原始 checkpoint、生成作业含 child 口令，保留在私有目录，不直接公开。出错时先释放本轮屏障并关闭读者，再停掉自有服务。未完成窗口、环境阻塞、判据错误或清理失败均非零。
 
 2026-11-06 的首轮 WSL/Python/gRPC 正式三项均已通过：CAP-003 完成 7,200 秒、240 轮、960 个真实作业和 135 秒回收观察。实际复跑、冻结配置、原始采样、独立验收、资源角色拆分和失败批次见工作区 [SCN-10 记录](../../../doc/2026-10-10-scenario-testing/records/scn-10/scn-10-wsl-capacity.md)。该机器共享其他会话，未控制其他 CPU/内存/磁盘负载；端到端耗时按当次共享主机观察解释，不作独占性能比较。
+
+## CAP-004 独立监控窗口
+
+默认配置只运行 **34 个节点、4 个窗口**。树包含根、`/monitor` Flow 和 32 个叶任务。进程内的 3 个 Python 读者各自持有独立连接、凭据和旧视图，另一个窗口以单独进程运行真实的 Textual TUI。控制命令使用第五份凭据。窗口数由 `windows` 决定，`job_concurrency` 单独控制实际提交的 Shell 作业数。默认值为 1 个作业、10 秒周期 checkpoint 和 1 秒采样。[小树配置](../assets/monitoring.toml)
+
+在 WSL/Linux 配好带 TUI 的 Takler 环境后，以下命令可复现小树工具验收。每次运行会在指定根目录下创建新的私有目录并打印 `RUN_ID` 与 `RUN_DIR`。
+
+```bash
+suite=/absolute/path/to/takler-test-suite
+python=/absolute/path/to/takler-env/bin/python
+SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
+  "$python" -Bu "$suite/run.py" --runs-dir "$suite/runs" \
+  run CAP-004 --profile local --client python --transport grpc
+```
+
+各窗口先同时读取子树及深度为 0 的根服务信息，再进行无变化刷新。实际 child 上报进度后，独立写者提交一次 `suspend`，所有窗口同步刷新。随后一个指定窗口拿自己的子树查询身份请求根详情，必须收到 `permission_denied`。恢复标记后，窗口错峰刷新，再关闭连接，在离线期间再次改变标记，从各自旧水位重连。每次读视图均核对标记状态、任务详情和根服务状态。TUI 另核对 Textual 合成屏幕上的任务路径与状态，时间含测试驱动的采样等待。
+
+| 要核对的结果 | 私有运行目录中的证据 |
+| --- | --- |
+| 实际树、窗口数和配置来源 | `monitor-config.json` 保存 TOML 路径、SHA256、生成条件和启动前主机样本 |
+| 哪个窗口、哪次请求失败或最慢 | `windows.jsonl` 逐条保存计划/启动/完成时间、查询身份、水位、异常和 RPC。正常窗口有视图可用时刻，实际 TUI 还有屏幕可见时刻。`monitor-summary.json` 按波次汇总，含预期越权拒绝 |
+| 调度、作业回执与保存 | `child-receipts.jsonl` 保存真实 CLI 上报区间，`checkpoint-events.jsonl` 保存外部文件事件。`monitor-measurements.json` 汇总监控和上报可能与保存文件 I/O 重叠的样本 |
+| 同机干扰与清理 | `host-resources.jsonl` 记录 CPU、内存、swap 和磁盘，`resources.jsonl` 记录本次进程树，`report.json` 记录结果和清理状态 |
+
+文件事件只能估计 checkpoint 写盘重叠，样本数为零时无法比较保存期间的延迟。三个无界面读者的 CPU 与内存合计在 runner 进程，TUI 与服务进程可按 PID 区分。主机同时运行的其他工作会影响资源与响应耗时。默认停止线要求可用内存至少 4 GiB、证据盘余量至少 20 GiB、较启动时的 swap 增长至多 1 GiB、自有进程 RSS 合计至多 8 GiB。
+
+**选择其他规模时使用完整 TOML。** `SCENARIO_MONITOR_CONFIG` 选择整个文件，各字段来自所选文件。复用某种树形时，复制该配置、修改 `windows` 并保存为独立文件，再把命令中的 TOML 路径改为该文件的绝对路径。`assets/monitoring-operations.toml` 是单独的工程替身配置，只有显式选择才会加载。其结构包含四个起报时次、数据/图形/归档三个阶段及预报时效和产品，默认合计 9,959 个节点、9,509 个叶任务。业务树 4、10、20 个窗口和 100K **叶任务**余量分档均待确认机器空闲后执行，小树运行只验证工具。该配置安排 10 个 60 秒轮询周期、4 个真实作业，每轮各作业上报一次进度并切换标记，保存周期 20 秒。实际生产变化率仍待校准。[工程替身配置](../assets/monitoring-operations.toml) · [工作区实施方案](../../../doc/2026-11-06-multi-window-monitoring/README.md)

@@ -27,6 +27,7 @@ def execute(case, profile, runs_dir, transport="grpc", client="python"):
         evidence.report.update(client=client, transport=transport)
     print(f"RUN_ID={evidence.directory.name}\nRUN_DIR={evidence.directory}", flush=True)
     service = None
+    entry = None
     result, reason, exit_code = "passed", None, 0
     try:
         entry = load_entry(case.entry)
@@ -50,7 +51,12 @@ def execute(case, profile, runs_dir, transport="grpc", client="python"):
     finally:
         if service is not None:
             try:
-                service.stop()
+                try:
+                    service.stop()
+                finally:
+                    cleanup = getattr(entry, "cleanup", None)
+                    if cleanup is not None:
+                        cleanup(evidence, service)
             except Exception as exc:
                 (evidence.directory / "cleanup-error.log").write_text(
                     traceback.format_exc()

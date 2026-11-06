@@ -4,7 +4,7 @@ Takler 的公开行为测试套件，支持自动化场景验证和操作演练�
 
 [快速开始](docs/quickstart.md) · [基线与安装](docs/baseline.md) · [用例和覆盖索引](docs/coverage.md) · [失败排查与清理](docs/troubleshooting.md) · [人工演练](docs/operator-exercise.md)
 
-当前接入 40 个用例：DEF-001–003、PAR-001–002，BAS-001–003、DPL-001–003，EXE-001–003、DEP-001–003、RES-001–002，CTL-001–003、TIM-001–002，QRY-001–005、SEC-001–004，RCV-001–004，以及 CAP-001–003。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。SEC-002 另需 `openssl`，EXE-003 另需同环境中的 takflow 和绝对路径 `SCENARIO_ORVIX_BIN`。
+当前接入 41 个用例，覆盖 DEF-001–003、PAR-001–002、BAS-001–003、DPL-001–003、EXE-001–003、DEP-001–003、RES-001–002、CTL-001–003、TIM-001–002、QRY-001–005、SEC-001–004、RCV-001–004 和 CAP-001–004。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。SEC-002 另需 `openssl`，EXE-003 另需同环境中的 takflow 和绝对路径 `SCENARIO_ORVIX_BIN`。
 
 在本工作区，先在 `repo/takler/` 准备开发虚拟环境，再从工作区根目录进入本仓库执行：
 
@@ -73,6 +73,8 @@ Go 恢复用例只需 `SCENARIO_GO_CLIENT`，不依赖查询 probe。RCV-001 明
 ## 接入下一项
 
 CAP-001–003 已接入统一入口，第一轮基线为 Python/gRPC、本地真实 Shell、周期 checkpoint 和外部资源采样。参数冻结在 [capacity.toml](assets/capacity.toml)，CAP-003 默认包含 2 小时负载和 135 秒回收观察，不能用短运行代替。[容量运行与测量说明](docs/capacity.md)。SCN-11 的 46 次历史交付选择仍保持原清单，不自动加入这些慢用例。
+
+CAP-004 用 34 节点小树验证多窗口监控工具。默认 4 个独立凭据和连接，其中 1 个运行真实 Textual TUI，其余使用 Python 查询客户端。每窗核对首开、同步与错峰刷新、任务详情和断线续读。可用 `SCENARIO_MONITOR_CONFIG` 指定一份完整的场景 TOML，分别设置观察窗口数与真实作业并发数。业务结构替身使用单独的显式配置。复现命令、逐窗账本及较大规模的执行条件见[多窗口运行说明](docs/capacity.md#cap-004-独立监控窗口)。
 
 在 `catalog.toml` 登记用例的分类、形态、角色、能力、profile 和实现状态。可执行入口放到 `cases/<一级>/<二级>/<用例编号小写_名称>/case.py`。在线 `local` 入口定义 `run(evidence, service)`，通过共享设施调用 CLI 和记录证据。离线 `offline` 入口定义 `run(evidence)`，直接使用公开构建 API。
 

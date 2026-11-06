@@ -5,19 +5,20 @@ from takler.serialization import export_definition
 from .runtime import require
 
 
-def write_definition(evidence, flow, name="definition.json"):
+def write_definition(evidence, flow, name="definition.json", *, indent=2):
     document = export_definition(flow)
     require(document.schema_version == 1, "Expected DefinitionDocument v1")
     path = evidence.directory / name
-    path.write_text(document.model_dump_json(indent=2) + "\n")
+    path.write_text(document.model_dump_json(indent=indent) + "\n")
     return path
 
 
-def snapshot(evidence, service, label, scope="/"):
+def snapshot(evidence, service, label, scope="/", *, depth=None):
     output = service.client(
         "snapshot",
         "--scope",
         scope,
+        *(("--depth", str(depth)) if depth is not None else ()),
         "--fields",
         "summary,definition,parameters,runtime,artifacts",
     ).stdout
