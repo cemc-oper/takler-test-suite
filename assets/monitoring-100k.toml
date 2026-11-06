@@ -1,0 +1,27 @@
+# Full-root headroom measurement, using individually loadable workflow definitions.
+schema_version = 1
+name = "100k-leaf-operations-headroom-v1"
+tree_kind = "operations_headroom"
+leaf_tasks = 100000
+windows = 4
+job_concurrency = 4
+load_timeout_seconds = 180
+rpc_timeout_seconds = 15
+checkpoint_seconds = 20
+min_periodic_publications = 2
+sample_seconds = 1
+stop_timeout_seconds = 180
+min_available_bytes = 4294967296
+min_disk_free_bytes = 21474836480
+max_swap_growth_bytes = 1073741824
+max_rss_bytes = 8589934592
+max_artifact_bytes = 8589934592
+max_owned_processes = 128
+refresh_seconds = 60
+poll_cycles = 10
+
+[structure]
+cycles = ["00", "06", "12", "18"]
+lead_count = 36
+lead_interval_hours = 3
+products_per_lead = 20

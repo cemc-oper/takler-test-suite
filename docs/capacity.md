@@ -91,4 +91,8 @@ SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
 
 范围与过期专项在原读者组关闭、真实作业结束后复用相同凭据，用无界面读者分别查看根与各时次。它从输入定义计算每个范围的完整路径清单，切换一片叶的状态，核对相关及未变范围。所有连接断开至少 125 秒后重连，逐窗要求旧水位收到 `reset_required/history_expired`，然后重新取快照并再做一次增量刷新。每窗的范围、节点数、预期 reset、快照及 RPC 见 `scope-rebuild/windows.jsonl`，连接与分母见同目录的 `events.jsonl` 和 `monitor-summary.json`。[范围及重建驱动](../harness/monitor_rebuild.py)
 
-本机 9,959 节点已完成 4、10、20 窗。20 窗常规组正常读取 300/300，定向组在 3 个保存周期内完成 60/60 次同步刷新，单独验证慢窗、不同业务范围和真实租约过期后的重建。100K 叶任务与 HPC 另行验证。[四窗基线](../../../doc/2026-11-06-multi-window-monitoring/t6-four-windows.md) · [十窗对照](../../../doc/2026-11-06-multi-window-monitoring/t7-ten-windows.md) · [二十窗结果与复跑](../../../doc/2026-11-06-multi-window-monitoring/t8-twenty-windows.md)
+本机 9,959 节点已完成 4、10、20 窗。20 窗常规组正常读取 300/300，定向组在 3 个保存周期内完成 60/60 次同步刷新，单独验证慢窗、不同业务范围和真实租约过期后的重建。100K 叶任务的 4 窗另在 T9 验证，HPC 另行安排。[四窗基线](../../../doc/2026-11-06-multi-window-monitoring/t6-four-windows.md) · [十窗对照](../../../doc/2026-11-06-multi-window-monitoring/t7-ten-windows.md) · [二十窗结果与复跑](../../../doc/2026-11-06-multi-window-monitoring/t8-twenty-windows.md)
+
+**100K 叶任务、4 个独立监控窗口。** 运行 CAP-004 时将 `SCENARIO_MONITOR_CONFIG` 指向 [monitoring-100k.toml](../assets/monitoring-100k.toml)。配置启动含 4 个真实作业的 11 个 Flow，总计 100,000 个叶任务和 104,728 个节点。服务从普通 gRPC LOAD 接收各个定义分片，再统一 BEGIN。每个窗口从根读取整树，直接使用该视图查询根服务信息。首开结束后，`cold-inventory.json` 记录每窗已收到的节点类型计数及路径清单哈希。场景结束时对已完成作业后的周期文件恢复验证，并将该文件保留在权限为 0600 的私有运行目录下。实际配置、分片装载时间、窗口/上报耗时、保存与资源记录分别存证。[T9 本机运行](../../../doc/2026-11-06-multi-window-monitoring/t9-100k-four-windows.md)
+
+本机 T9 正式运行 `cap-004-pjwtzm55` 通过。四窗各读 61 页、清点到精确的 100,000 个叶任务；正常读取 60/60，完整摘要最慢 4.378 秒。保存时的自然重叠、较慢的错峰样本和验收恢复的用时见 [T9 实测](../../../doc/2026-11-06-multi-window-monitoring/t9-100k-four-windows.md)。

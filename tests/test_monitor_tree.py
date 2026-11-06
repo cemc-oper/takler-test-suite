@@ -1,9 +1,9 @@
 import tomllib
 from pathlib import Path
 
-from takler.core import Bunch, NodeStatus
+from takler.core import Bunch, Flow, NodeStatus, Task
 
-from harness.monitor_tree import add_backdrop, tree_counts
+from harness.monitor_tree import add_backdrop, monitor_flows, tree_counts
 
 PROFILE = Path(__file__).resolve().parents[1] / "assets/monitoring-operations.toml"
 
@@ -81,3 +81,44 @@ def test_business_polling_clock_and_marker_without_running_business_tree(monkeyp
             "steady-2", "refresh", True, stagger_seconds=0, receipt_ns=120_000_000_000
         ),
     ]
+
+
+def test_headroom_freeze_and_partial_flow_preserve_count_and_dependencies():
+    cfg = tomllib.loads((PROFILE.parent / "monitoring-100k.toml").read_text())
+    assert tree_counts(cfg) == dict(
+        kind="operations_headroom",
+        flows=11,
+        containers=4716,
+        tasks=100000,
+        nodes=104728,
+        max_depth=5,
+    )
+    cfg["structure"].update(cycles=["00"], lead_count=1, products_per_lead=1)
+    cfg["job_concurrency"] = 1
+    for background in (1, 2, 3, 8, 9, 10, 18, 19):
+        cfg["leaf_tasks"] = 2 + background
+        bunch = Bunch()
+        monitor = Flow("monitor")
+        monitor.add_event("enable_background")
+        monitor.add_task("worker0")
+        monitor.add_task("marker")
+        for flow in monitor_flows(monitor, cfg):
+            bunch.add_flow(flow)
+        pending = list(bunch.flows.values())
+        nodes, tasks = 1, 0
+        while pending:
+            n = pending.pop()
+            tasks += isinstance(n, Task)
+            nodes += 1
+            pending.extend(n.children)
+        expected = tree_counts(cfg)
+        assert (nodes, tasks, len(bunch.flows)) == (
+            expected["nodes"],
+            cfg["leaf_tasks"],
+            expected["flows"],
+        )
+        if background > 9:
+            gated = bunch.find_node("/backdrop001/cycle00/data/h000/prepare")
+            assert not gated.evaluate_trigger()
+            bunch.find_flow("backdrop001").set_event("enable_background", True)
+            assert gated.evaluate_trigger()

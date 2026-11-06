@@ -97,9 +97,9 @@ def test_authenticated_setup_records_each_command(tmp_path, monkeypatch, fail_lo
     monkeypatch.setattr(GrpcTransport, "open", lambda self: None)
     if fail_load:
         with pytest.raises(TimeoutError):
-            workload.load_flow(Flow("monitor"))
+            workload.load_flows([Flow("monitor")])
     else:
-        workload.load_flow(Flow("monitor"))
+        workload.load_flows([Flow("monitor")])
     rows = [
         json.loads(line)
         for line in (evidence.directory / "events.jsonl").read_text().splitlines()
@@ -213,3 +213,49 @@ def test_failed_real_child_is_timed_without_credentials(tmp_path):
     assert row["command"] == "meter" and row["attempt"] == "attempt-one"
     assert row["returncode"] == 1 and row["end_ns"] >= row["start_ns"]
     assert "private-child-pass" not in output.read_text()
+
+
+def test_headroom_loads_every_shard_before_one_begin_all(tmp_path):
+    evidence = Evidence(tmp_path, SimpleNamespace(id="CAP-004"), "local")
+    service = SimpleNamespace(
+        monitor_config={"tree_kind": "operations_headroom", "job_concurrency": 1},
+        client=Mock(),
+    )
+    workload = MonitorWorkload(evidence, service)
+    workload.host = workload.resources = Mock()
+    workload.load_flows(iter((Flow("monitor"), Flow("backdrop001"))))
+    assert [call.args for call in service.client.call_args_list] == [
+        ("load", str(evidence.directory / "monitor.json")),
+        ("load", str(evidence.directory / "backdrop001.json")),
+        ("begin", ""),
+    ]
+
+
+def test_headroom_restore_detects_a_submitted_background_leaf():
+    from takler.core import Bunch
+    from harness.monitor_tree import monitor_flows
+
+    cfg = {
+        "tree_kind": "operations_headroom",
+        "job_concurrency": 1,
+        "leaf_tasks": 12,
+        "structure": {
+            "cycles": ["00"],
+            "lead_count": 1,
+            "lead_interval_hours": 3,
+            "products_per_lead": 1,
+        },
+    }
+    saved = Bunch()
+    flow = Flow("monitor")
+    flow.add_event("enable_background")
+    flow.add_task("marker")
+    flow.add_task("worker0")
+    for shard in monitor_flows(flow, cfg):
+        saved.add_flow(shard)
+        shard.begin()
+    workload = MonitorWorkload(None, SimpleNamespace(monitor_config=cfg))
+    assert workload.verify_headroom_tree(saved)["tasks"] == 12
+    saved.find_node("/backdrop001/cycle00/data/h000/prepare").attempt_id = "stray"
+    with pytest.raises(RunError, match="background leaf"):
+        workload.verify_headroom_tree(saved)

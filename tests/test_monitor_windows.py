@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import grpc
 import pytest
 
-from harness.monitor_windows import MonitorGroup, RpcTrace
+from harness.monitor_windows import MonitorGroup, RpcTrace, snapshot_inventory
 from harness.runtime import Evidence, RunError
 from takler.exceptions import QueryResponseError
 
@@ -106,6 +106,38 @@ def test_duplicate_open_identity_fails_in_the_window_ledger(tmp_path):
         with pytest.raises(RunError, match="monitor_identity"):
             group.wave("cold-open", "open", False)
     assert [r["error_code"] for r in ledger(evidence)] == [None, "monitor_identity"]
+
+
+def test_full_root_detail_reuses_only_its_own_reader_identity(tmp_path):
+    class RootReader(Reader):
+        scope = "/"
+
+        def step(self, action, expected):
+            row = super().step(action, expected)
+            row["root_query_id"] = row["query_id"]
+            return row
+
+    with MonitorGroup(
+        run_evidence(tmp_path), [RootReader(0), RootReader(1)], lambda: None
+    ) as group:
+        assert len(group.wave("cold-open", "open", False)) == 2
+    with MonitorGroup(
+        run_evidence(tmp_path), [RootReader(0), RootReader(0)], lambda: None
+    ) as group:
+        with pytest.raises(RunError, match="monitor_identity"):
+            group.wave("cold-open", "open", False)
+
+
+def test_inventory_counts_nodes_from_the_committed_view():
+    paths = {"/": "bunch", "/f": "flow", "/f/c": "container", "/f/c/a": "task"}
+    view = SimpleNamespace(
+        scope_path="/",
+        query_id="q",
+        snapshot_id="s",
+        ordered_paths=tuple(paths),
+        nodes={path: SimpleNamespace(node_kind=kind) for path, kind in paths.items()},
+    )
+    assert snapshot_inventory(view)["node_kinds"] == dict.fromkeys(paths.values(), 1)
 
 
 def test_transparent_retry_keeps_first_denial_in_ledger(tmp_path):

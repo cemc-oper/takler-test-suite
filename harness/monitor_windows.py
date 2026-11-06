@@ -3,6 +3,7 @@
 import hashlib
 import json
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from threading import Barrier
@@ -15,6 +16,18 @@ from takler.exceptions import QueryResponseError
 from takler.protocol.query_v1 import DetailRequest, FailureReply
 
 from .runtime import RunError, require
+
+
+def snapshot_inventory(view):
+    return {
+        "scope": view.scope_path,
+        "query_id": view.query_id,
+        "snapshot_id": view.snapshot_id,
+        "node_kinds": dict(Counter(node.node_kind for node in view.nodes.values())),
+        "paths_sha256": hashlib.sha256(
+            "\n".join(sorted(view.ordered_paths)).encode()
+        ).hexdigest(),
+    }
 
 
 class RpcTrace(grpc.UnaryUnaryClientInterceptor):
@@ -120,6 +133,8 @@ class HeadlessWindow:
     def step(self, action, expected_suspended):
         self.wire.trace.calls = []
         before = self.primary.current
+        if action == "inventory":
+            return snapshot_inventory(before)
         if action == "disconnect":
             require(before is not None, "Disconnected reader has no committed view")
             self.close()
@@ -127,13 +142,16 @@ class HeadlessWindow:
         if action == "fault":
             # Send the otherwise valid subtree identity to the real detail RPC.
             # A high-level read_detail call would reject the path locally.
-            require(before is not None and self.scope != "/", "Fault needs a subtree")
+            require(before is not None, "Fault needs an open window")
+            restricted = before
+            if self.scope == "/":
+                restricted = self.root.read_snapshot(scope_path="/monitor", depth=0)
             rejected = self.wire.query(
                 DetailRequest(
                     kind="detail_request",
                     schema_version=1,
-                    session_id=before.session_id,
-                    query_id=before.query_id,
+                    session_id=restricted.session_id,
+                    query_id=restricted.query_id,
                     path="/",
                     flow_generation=None,
                     attempt_id=None,
@@ -179,10 +197,13 @@ class HeadlessWindow:
                 view.revision > before.revision and self.marker in view.changed_paths,
                 "Changed marker did not advance from the reader's old waterline",
             )
-        # Same root service selection as the TUI. Keep its identity separate.
-        root = self.root.read_snapshot(depth=0)
-        require(root.ordered_paths == ("/",), "Service query escaped depth zero")
-        service = self.root.read_detail(root, "/", ["service", "parameters"])
+        if self.scope == "/":
+            root = view
+            service = self.primary.read_detail(root, "/", ["service", "parameters"])
+        else:
+            root = self.root.read_snapshot(depth=0)
+            require(root.ordered_paths == ("/",), "Service query escaped depth zero")
+            service = self.root.read_detail(root, "/", ["service", "parameters"])
         root_ready = time.monotonic_ns()
         detail = self.primary.read_detail(view, self.marker, ["parameters"])
         labels = {item.name: item.value for item in detail.groups.parameters.user}
@@ -336,11 +357,16 @@ class MonitorGroup:
                 if row["result"] != "ok":
                     continue
                 pair = {row.get("query_id"), row.get("root_query_id")}
-                if len(pair) != 2 or None in pair or identities.intersection(pair):
+                expected = 1 if row["scope"] == "/" else 2
+                if (
+                    len(pair) != expected
+                    or None in pair
+                    or identities.intersection(pair)
+                ):
                     row.update(
                         result="failed",
                         error_code="monitor_identity",
-                        error="Expected separate primary and root query identities",
+                        error="Unexpected or shared monitor query identity",
                     )
                 identities.update(pair)
         self.rows.extend(rows)

@@ -150,7 +150,9 @@ def steady_refreshes(workload, group, cfg):
 
 
 def run(evidence, service):
-    scope, marker = "/monitor", "/monitor/marker"
+    full_tree = service.monitor_config["tree_kind"] == "operations_headroom"
+    scope = "/" if full_tree else "/monitor"
+    marker = "/monitor/marker"
     timeout = service.capacity["rpc_timeout_seconds"]
     with monitor_workload.MonitorWorkload(evidence, service) as workload:
         with ExitStack() as opening:
@@ -168,7 +170,8 @@ def run(evidence, service):
             with group:
                 opening.pop_all()  # The group now owns all readers.
                 opened = group.wave("cold-open", "open", False)
-                expected = tree_counts(service.monitor_config)["nodes"] - 1
+                counts = tree_counts(service.monitor_config)
+                expected = counts["nodes"] if full_tree else counts["nodes"] - 1
                 require(
                     all(row["nodes"] == expected for row in opened),
                     "A window missed nodes in its initial subtree",
@@ -176,6 +179,23 @@ def run(evidence, service):
                 check_connections(
                     evidence, service.port, windows[0].process.pid, len(windows), "open"
                 )
+                if full_tree:
+                    inventory = [window.step("inventory", None) for window in windows]
+                    evidence.write_json("cold-inventory.json", inventory)
+                    kinds = {
+                        "bunch": 1,
+                        "flow": counts["flows"],
+                        "container": counts["containers"],
+                        "task": counts["tasks"],
+                    }
+                    for index, item in enumerate(inventory):
+                        require(
+                            item["node_kinds"] == kinds
+                            and item["paths_sha256"] == inventory[0]["paths_sha256"]
+                            and item["query_id"] == opened[index]["query_id"]
+                            and item["snapshot_id"] == opened[index]["snapshot_id"],
+                            f"Window {index} full-tree inventory differs from its cold snapshot or fixture",
+                        )
                 group.wave("unchanged", "refresh", False)
                 workload.report_meter()
                 ack = workload.set_marker(True)

@@ -154,7 +154,7 @@ async def _session(conn, port, scope, marker, timeout):
     from takler.tui.service import TaklerTuiService
     from takler.tui.widgets import NodeTree
     from textual.widgets import Switch
-    from harness.monitor_windows import RpcTrace
+    from harness.monitor_windows import RpcTrace, snapshot_inventory
 
     class ObservedService(TaklerTuiService):
         """Timestamp the real service's public return values before the app draws."""
@@ -218,6 +218,8 @@ async def _session(conn, port, scope, marker, timeout):
     async def act(action, expected):
         nonlocal pilot
         before = service.view
+        if action == "inventory":
+            return snapshot_inventory(before)
         if action == "disconnect":
             require(before is not None, "Disconnected TUI has no committed view")
             service.close()  # Preserve the app and its last committed revision.

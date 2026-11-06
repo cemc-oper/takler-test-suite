@@ -19,7 +19,7 @@ from takler.serialization.checkpoint import restore_checkpoint
 from .capacity import Resources
 from .capacity_load import Commands
 from .jobs import Jobs
-from .monitor_tree import add_backdrop, tree_counts
+from .monitor_tree import monitor_flows, tree_counts
 from .online import write_definition
 from .recovery import status
 from .runtime import EnvironmentBlocked, require, timestamp, wait_for
@@ -118,7 +118,8 @@ def prepare(evidence, service):
     cfg = tomllib.loads(raw.decode())
     require(
         cfg["schema_version"] == 1
-        and cfg["tree_kind"] in {"synthetic_flat", "operations_proxy"},
+        and cfg["tree_kind"]
+        in {"synthetic_flat", "operations_proxy", "operations_headroom"},
         "Unsupported monitor tree schema",
     )
     for key in (
@@ -181,7 +182,7 @@ def prepare(evidence, service):
                 **counts,
                 "seed": None,
                 "generation": "deterministic insertion order",
-                "scope": SCOPE,
+                "scope": "/" if cfg["tree_kind"] == "operations_headroom" else SCOPE,
                 "marker": MARKER,
             },
             "cpu_affinity": sorted(os.sched_getaffinity(0)),
@@ -322,8 +323,7 @@ class MonitorWorkload:
             marker = flow.add_task("marker")
             marker.add_parameter("LABEL", "marker")
             marker.add_trigger("/monitor:enable_background == set")
-            add_backdrop(flow, self.cfg)
-            self.load_flow(flow)
+            self.load_flows(monitor_flows(flow, self.cfg))
             self.loaded_ns = time.monotonic_ns()
             self.active = self.jobs.phase(
                 "monitor-active", {p: "active" for p in self.paths}
@@ -344,8 +344,9 @@ class MonitorWorkload:
         self.host.check()
         self.resources.check()
 
-    def load_flow(self, flow):
-        target = write_definition(self.evidence, flow, f"{flow.name}.json", indent=None)
+    def load_flows(self, flows):
+        # No jobs start while later shards are still being prepared.
+        headroom = self.cfg.get("tree_kind") == "operations_headroom"
         with ExitStack() as setup:
             call = self.service.client
             if "load_timeout_seconds" in self.cfg:
@@ -355,24 +356,36 @@ class MonitorWorkload:
                     )
                 )
                 call = writer.call
-            for command, argument in (("load", str(target)), ("begin", flow.name)):
+            for flow in flows:
                 self.check()
-                measurement = {
-                    "command": command,
-                    "start_ns": time.monotonic_ns(),
-                    "success": False,
-                }
-                if command == "load":
-                    measurement["definition_bytes"] = target.stat().st_size
-                try:
-                    call(command, argument)
-                    measurement["success"] = True
-                finally:
-                    self.evidence.record(
-                        "monitor_setup_command",
-                        **measurement,
-                        end_ns=time.monotonic_ns(),
+                name = f"{flow.name}.json"
+                target = write_definition(self.evidence, flow, name, indent=None)
+                size = target.stat().st_size
+                if headroom:
+                    require(
+                        size < 4 * 1024 * 1024 - 1024, "LOAD exceeds the gRPC envelope"
                     )
+                self.setup_command(
+                    call, "load", str(target), file=name, definition_bytes=size
+                )
+            self.check()
+            # On the private multi-flow instance an empty target begins every shard.
+            self.setup_command(call, "begin", "" if headroom else SCOPE[1:])
+
+    def setup_command(self, call, command, argument, **details):
+        measurement = {
+            "command": command,
+            "start_ns": time.monotonic_ns(),
+            "success": False,
+            **details,
+        }
+        try:
+            call(command, argument)
+            measurement["success"] = True
+        finally:
+            self.evidence.record(
+                "monitor_setup_command", **measurement, end_ns=time.monotonic_ns()
+            )
 
     def set_marker(self, suspended):
         self.check()
@@ -512,5 +525,50 @@ class MonitorWorkload:
             "runner_pid": os.getpid(),
             "scope": "host-resources.jsonl contains WSL CPU, swap and filesystem; resources.jsonl contains owned identities, RSS, FD, threads, CPU ticks. In-process observers share their runner's resources.",
         }
+        if self.cfg.get("tree_kind") == "operations_headroom":
+            measurements["verified_checkpoint"]["tree"] = self.verify_headroom_tree(
+                saved
+            )
+            # Keep precisely the verified periodic file. A later shutdown writes a new primary.
+            path = self.evidence.directory / "private-verified-periodic.check"
+            with open(
+                path, "xb", opener=lambda name, flags: os.open(name, flags, 0o600)
+            ) as output:
+                output.write(raw)
+            measurements["verified_checkpoint"]["private_file"] = path.name
         self.evidence.write_json("monitor-measurements.json", measurements)
         return {"workload": checks, "observations": measurements}
+
+    def verify_headroom_tree(self, saved):
+        from takler.core import NodeContainer, NodeStatus, Task
+
+        require(
+            all(flow.begun for flow in saved.flows.values()),
+            "An inactive Flow was loaded",
+        )
+        counts = {"flows": len(saved.flows), "containers": 0, "tasks": 0}
+        active_paths = set(self.paths) | {MARKER}
+        pending = [node for flow in saved.flows.values() for node in flow.children]
+        while pending:
+            node = pending.pop()
+            if isinstance(node, Task):
+                counts["tasks"] += 1
+                if node.node_path not in active_paths:
+                    require(
+                        node.attempt_id is None
+                        and node.state.node_status == NodeStatus.queued,
+                        "A background leaf was submitted or left its gated state",
+                    )
+            else:
+                require(
+                    isinstance(node, NodeContainer), "Unexpected capacity node kind"
+                )
+                counts["containers"] += 1
+                pending.extend(node.children)
+        counts["nodes"] = 1 + sum(counts.values())
+        expected = tree_counts(self.cfg)
+        require(
+            all(expected[k] == v for k, v in counts.items()),
+            "Restored tree size mismatch",
+        )
+        return counts
