@@ -14,7 +14,7 @@ from tempfile import TemporaryDirectory
 
 from harness import monitor_workload
 from harness.jobs import process_identity
-from harness.monitor_checkpoint import checkpoint_refreshes
+from harness.monitor_checkpoint import checkpoint_cold_open, checkpoint_refreshes
 from harness.monitor_process import HeadlessProcessWindow
 from harness.monitor_rebuild import definition_paths, verify_scope_rebuild
 from harness.monitor_slow import slow_reader_refresh
@@ -35,6 +35,12 @@ def prepare(evidence, service):
     require(type(waves) is int and waves >= 0, "Invalid checkpoint sync wave count")
     require(
         not (cycles and waves), "Use separate runs for steady polls and checkpoint sync"
+    )
+    cold_open = cfg.get("checkpoint_cold_open", False)
+    require(type(cold_open) is bool, "checkpoint_cold_open must be a boolean")
+    require(
+        not cold_open or cfg["headless_mode"] == "process",
+        "Checkpoint cold open requires independent reader processes",
     )
     slow_reader = cfg.get("slow_reader", False)
     require(type(slow_reader) is bool, "slow_reader must be a boolean")
@@ -246,7 +252,11 @@ def run(evidence, service):
             group = MonitorGroup(evidence, windows, workload.check)
             with group:
                 opening.pop_all()  # The group now owns all readers.
-                opened = group.wave("cold-open", "open", False)
+                cold_qualified = None
+                if service.monitor_config.get("checkpoint_cold_open"):
+                    opened, cold_qualified = checkpoint_cold_open(workload, group)
+                else:
+                    opened = group.wave("cold-open", "open", False)
                 counts = tree_counts(service.monitor_config)
                 expected = counts["nodes"] if full_tree else counts["nodes"] - 1
                 require(
@@ -295,6 +305,8 @@ def run(evidence, service):
                     else None
                 )
                 checks = workload.finish(group.rows)
+                if cold_qualified is not None:
+                    checks["checkpoint_cold_open"] = {"qualified": cold_qualified}
                 if sync:
                     checks["checkpoint_sync"] = sync
                 if slow:
@@ -302,3 +314,7 @@ def run(evidence, service):
         if service.monitor_config.get("scope_rebuild"):
             checks["scope_rebuild"] = verify_scope_rebuild(workload)
         evidence.record_checks(windows=len(windows), **checks)
+        require(
+            cold_qualified is not False,
+            "Cold open missed the checkpoint interval; see checkpoint-cold-open.json",
+        )

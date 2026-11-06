@@ -294,6 +294,7 @@ class MonitorWorkload:
             self.jobs = Jobs(self.evidence, self.service, scope=SCOPE, depth=1)
             detached = bool(
                 self.cfg.get("poll_cycles")
+                or self.cfg.get("checkpoint_cold_open")
                 or self.cfg.get("checkpoint_sync_waves")
                 or self.cfg.get("slow_reader")
             )

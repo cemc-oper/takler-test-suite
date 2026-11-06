@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from harness.monitor_checkpoint import checkpoint_refreshes
+from harness.monitor_checkpoint import checkpoint_cold_open, checkpoint_refreshes
 from harness.runtime import Evidence, RunError
 
 
@@ -110,3 +110,97 @@ def test_create_timeout_preserves_unsent_denominator(tmp_path, monkeypatch):
     assert attempt["reason"].startswith("Timed out waiting")
     assert attempt["planned"] == 2 and attempt["sent"] == 0
     assert all(w["result"] == "not_sent" for w in attempt["windows"])
+
+
+@pytest.mark.parametrize(
+    "begin,summary,page_end,qualified",
+    [
+        (105, 5_000_000_106, 119, True),  # Inside the file write, just over 5 seconds.
+        (
+            102,
+            119,
+            119,
+            False,
+        ),  # The plan predates the conservative CREATE upper bound.
+        (105, 7_000_000_001, 119, False),  # Pages fit, summary assembly finishes later.
+        (105, 119, 7_000_000_001, False),  # A second page is outside the write.
+    ],
+)
+def test_cold_open_qualifies_the_plan_summary_and_all_pages(
+    tmp_path, monkeypatch, begin, summary, page_end, qualified
+):
+    workload, group = simulation(tmp_path, {})
+    monkeypatch.setattr("harness.monitor_checkpoint.time.monotonic_ns", lambda: 100)
+    start = {"temp_name": "fresh", "start_lower_ns": 101, "start_upper_ns": 103}
+    workload.resources.latest_checkpoint_start = start
+    published = {
+        **start,
+        "end_lower_ns": 7_000_000_000,
+        "end_upper_ns": 7_000_000_010,
+        "matched_temp_rename": True,
+        "bytes": 1000,
+    }
+    workload.resources.windows = [
+        {**published, "temp_name": "old"},
+        {**published, "start_upper_ns": 99},
+    ]
+
+    def wave(phase, action, marker):
+        assert (phase, action, marker) == ("cold-open", "open", False)
+        for window in group.windows:
+            group.rows.append(
+                {
+                    "window": window,
+                    "planned_ns": begin,
+                    "start_ns": 105,
+                    "summary_ready_ns": summary,
+                    "end_ns": 8_000_000_000,
+                    "first_attempt": True,
+                    "result": "ok",
+                    "rpcs": [
+                        {"method": "ReadPage", "start_ns": 105, "end_ns": 108},
+                        {"method": "ReadPage", "start_ns": 110, "end_ns": page_end},
+                    ],
+                }
+            )
+        workload.resources.windows.append(published)
+        return group.rows
+
+    group.wave = wave
+    rows, passed = checkpoint_cold_open(workload, group)
+    assert rows == group.rows and passed is qualified
+    ledger = json.loads(
+        (workload.evidence.directory / "checkpoint-cold-open.json").read_text()
+    )
+    assert ledger["checkpoint"] == published
+    assert (ledger["planned"], ledger["sent"], ledger["ok"]) == (2, 2, 2)
+    assert ledger["summary_within_5s"] == 2 * (summary - begin <= 5_000_000_000)
+    assert all(not w["logical_inside"] and w["pages"] == 2 for w in ledger["windows"])
+    assert ("reason" in ledger) is (not qualified)
+
+
+def test_cold_open_ignores_stale_create_and_preserves_unsent_windows(
+    tmp_path, monkeypatch
+):
+    workload, group = simulation(tmp_path, {})
+    workload.resources.latest_checkpoint_start = {
+        "start_lower_ns": 90,
+        "start_upper_ns": 101,
+    }
+    monkeypatch.setattr("harness.monitor_checkpoint.time.monotonic_ns", lambda: 100)
+
+    def sample_once(description, check, **kwargs):
+        assert not check()
+        raise RunError("test CREATE timeout")
+
+    monkeypatch.setattr("harness.monitor_checkpoint.wait_for", sample_once)
+    group.wave = Mock()
+    with pytest.raises(RunError, match="CREATE timeout"):
+        checkpoint_cold_open(workload, group)
+    group.wave.assert_not_called()
+    ledger = json.loads(
+        (workload.evidence.directory / "checkpoint-cold-open.json").read_text()
+    )
+    assert ledger["planned"] == 2 and ledger["sent"] == ledger["ok"] == 0
+    assert all(w["result"] == "not_sent" for w in ledger["windows"])
+    assert not ledger["qualified"] and ledger["reason"] == "test CREATE timeout"
