@@ -72,16 +72,26 @@ SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
   run CAP-004 --profile local --client python --transport grpc
 ```
 
+**十窗小树可以用两种进程布局复跑。** 将上述命令的 `SCENARIO_MONITOR_CONFIG` 分别指向下列文件，两次使用全新服务。窗口 1 始终是真实 TUI。其余 9 窗使用各自的凭据、gRPC 连接和查询视图。`headless_mode` 控制这些窗口如何运行，窗口数由 `windows` 指定。
+
+| `headless_mode` | 十窗的读者进程 | 完整的小树配置 |
+| --- | --- | --- |
+| `thread`（省略时的默认值） | TUI 独立运行，9 个无界面窗口在 runner 的不同线程中读取 | [十窗线程配置](../assets/monitoring-small-ten-thread.toml) |
+| `process` | TUI 和 9 个无界面窗口各用一个 Python 进程，runner 负责放行和记账 | [十窗进程配置](../assets/monitoring-small-ten-process.toml) |
+
+进程组在各读者准备好后才放行，同一波从共同计划时刻计时。摘要可用、必要根信息可用和 TUI 首屏分别记录。每个读者在本地持有完整视图，冷开后才清点节点、计算路径哈希。现有慢读者和多范围租约过期专项使用 `thread` 模式。 无界面进程的 IPC 看门狗为 300 秒与单 RPC 预算加 2 秒中的较大值，超时会回收该测试读者。子进程在回传记录前退出时，该步标记 `rpc_trace_missing`，RPC 数只计父进程实际收到的记录。
+
 各窗口先同时读取子树及深度为 0 的根服务信息，再进行无变化刷新。实际 child 上报进度后，独立写者提交一次 `suspend`，所有窗口同步刷新。随后一个指定窗口拿自己的子树查询身份请求根详情，必须收到 `permission_denied`。恢复标记后，窗口错峰刷新，再关闭连接，在离线期间再次改变标记，从各自旧水位重连。每次读视图均核对标记状态、任务详情和根服务状态。TUI 另核对 Textual 合成屏幕上的任务路径与状态，时间含测试驱动的采样等待。
 
 | 要核对的结果 | 私有运行目录中的证据 |
 | --- | --- |
 | 实际树、窗口数和配置来源 | `monitor-config.json` 保存 TOML 路径、SHA256、生成条件和启动前主机样本 |
 | 哪个窗口、哪次请求失败或最慢 | `windows.jsonl` 逐条保存计划/启动/完成时间、查询身份、水位、异常和 RPC。正常窗口有视图可用时刻，实际 TUI 还有屏幕可见时刻。`monitor-summary.json` 按波次汇总，含预期越权拒绝 |
+| 每个读者实际跑在哪里、读到了什么 | `events.jsonl` 的 `monitor_reader_layout` 列出每窗对应的凭据文件名、PID 和启动标识。`monitor_tcp_connections` 记录首开、重连时各 PID 拥有的 TCP 端点。`cold-inventory.json` 记录每人已收到的节点类型计数和路径清单哈希 |
 | 调度、作业回执与保存 | `child-receipts.jsonl` 保存真实 CLI 上报区间及其中每次 gRPC 的方法、状态与独立起止时间，`checkpoint-events.jsonl` 保存外部文件事件。`monitor-measurements.json` 汇总监控和上报可能与保存文件 I/O 重叠的样本 |
 | 同机干扰与清理 | `host-resources.jsonl` 记录 CPU、内存、swap 和磁盘，`resources.jsonl` 记录本次进程树，`report.json` 记录结果和清理状态 |
 
-文件事件只能估计 checkpoint 写盘重叠，样本数为零时无法比较保存期间的延迟。三个无界面读者的 CPU 与内存合计在 runner 进程，TUI 与服务进程可按 PID 区分。主机同时运行的其他工作会影响资源与响应耗时。默认停止线要求可用内存至少 4 GiB、证据盘余量至少 20 GiB、较启动时的 swap 增长至多 1 GiB、自有进程 RSS 合计至多 8 GiB。
+文件事件只能估计 checkpoint 写盘重叠，样本数为零时无法比较保存期间的延迟。按 PID 和启动标识关联资源样本。线程模式的无界面读者共享 runner 的 CPU 与内存，进程模式能逐窗核对。作业由 `process-intervals.json` 识别，保存辅助进程在采样中带有 `helper_role`。主机同时运行的其他工作会影响响应耗时。默认停止线要求可用内存至少 4 GiB、证据盘余量至少 20 GiB、较启动时的 swap 增长至多 1 GiB、自有进程 RSS 合计至多 8 GiB。
 
 **选择其他规模时使用完整 TOML。** `SCENARIO_MONITOR_CONFIG` 选择整个文件，各字段来自所选文件。复用某种树形时，复制该配置、修改 `windows` 并保存为独立文件，再把命令中的 TOML 路径改为该文件的绝对路径。`assets/monitoring-operations.toml` 是单独的工程替身配置，只有显式选择才会加载。其结构包含四个起报时次、数据/图形/归档三个阶段及预报时效和产品，默认合计 9,959 个节点、9,509 个叶任务。该配置安排 10 个 60 秒轮询周期、4 个真实作业，每轮各作业上报一次进度并切换标记，保存周期 20 秒。准备阶段 LOAD 和 BEGIN 各有 180 秒单次预算，单独记耗时及定义字节。真实长作业由本地后台 Shell 执行，按所观测的 PID 与启动标识把作业及其子进程计入自有资源停止线。实际生产变化率仍待校准。[工程替身配置](../assets/monitoring-operations.toml) · [工作区实施方案](../../../doc/2026-11-06-multi-window-monitoring/README.md)
 

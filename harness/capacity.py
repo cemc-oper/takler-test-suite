@@ -12,6 +12,8 @@ import time
 import tomllib
 from pathlib import Path
 
+from assets.cleanup_service_helpers import helper_role
+
 from .runtime import EnvironmentBlocked, require, timestamp
 
 
@@ -61,7 +63,7 @@ def prepare(evidence, service):
     )
 
 
-def descendants(root, *, extra_roots=()):
+def descendants(root, *, extra_roots=(), server_pid=None):
     from .jobs import process_identity
 
     pending, result = [(root, None), *extra_roots], []
@@ -85,12 +87,17 @@ def descendants(root, *, extra_roots=()):
                 )
                 row = {
                     "pid": pid,
+                    "ppid": int(fields[1]),
                     "start_ticks": identity,
                     "rss_bytes": int(status.get("VmRSS", "0 kB").split()[0]) * 1024,
                     "fds": len(list((base / "fd").iterdir())),
                     "threads": int(status["Threads"]),
                     "cpu_ticks": int(fields[11]) + int(fields[12]),
                 }
+                if row["ppid"] == server_pid:
+                    role = helper_role((base / "cmdline").read_bytes().split(b"\0"))
+                    if role:
+                        row["helper_role"] = role
                 children = [
                     int(p) for p in (base / f"task/{pid}/children").read_text().split()
                 ]
@@ -242,7 +249,12 @@ class Resources:
                         continue
                     sample_at = now + int(self.config["sample_seconds"] * 1e9)
                     job_roots = self.job_roots() if self.job_roots else ()
-                    processes = descendants(os.getpid(), extra_roots=job_roots)
+                    server = self.service.process
+                    processes = descendants(
+                        os.getpid(),
+                        extra_roots=job_roots,
+                        server_pid=server.pid if server else None,
+                    )
                     if now >= disk_at:
                         disk_bytes = 0
                         for path in self.evidence.directory.rglob("*"):

@@ -1,17 +1,22 @@
 """Independent authenticated readers on a live workflow with periodic saves."""
 
 import getpass
+import hashlib
+import json
 import os
 import secrets
 import subprocess
 import time
+from collections import Counter
 from contextlib import ExitStack
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from harness import monitor_workload
+from harness.jobs import process_identity
 from harness.monitor_checkpoint import checkpoint_refreshes
-from harness.monitor_rebuild import verify_scope_rebuild
+from harness.monitor_process import HeadlessProcessWindow
+from harness.monitor_rebuild import definition_paths, verify_scope_rebuild
 from harness.monitor_slow import slow_reader_refresh
 from harness.monitor_tree import tree_counts
 from harness.monitor_tui import TuiWindow
@@ -68,6 +73,13 @@ def prepare(evidence, service):
     allow = directory / "operators"
     allow.touch(mode=0o600)
     allow.write_text("\n".join(tokens) + "\n")
+    require(len(set(tokens)) == len(tokens), "Monitor credentials must be distinct")
+    evidence.record(
+        "monitor_credentials",
+        observers=len(readers),
+        distinct_observers=len(set(tokens[1:])),
+        writer_distinct=tokens[0] not in tokens[1:],
+    )
     users = directory / "users"
     users.write_text(getpass.getuser() + "\n")
     service.security.update(
@@ -102,30 +114,61 @@ def cleanup(evidence, service):
         )
 
 
-def check_connections(evidence, port, tui_pid, windows, phase):
+def check_connections(evidence, port, readers, phase):
     result = subprocess.run(
-        ["ss", "-Hntp", "state", "established", f"dport = :{port}"],
+        ["ss", "-Hntpe", "state", "established", f"dport = :{port}"],
         check=True,
         text=True,
         capture_output=True,
         timeout=5,
     )
-    expected = {tui_pid: 1, os.getpid(): windows - 1}
-    by_pid = {
-        pid: sorted(
-            {
-                line.split()[2]
-                for line in result.stdout.splitlines()
-                if f"pid={pid}," in line
-            }
-        )
-        for pid in expected
-    }
-    evidence.record("monitor_tcp_connections", phase=phase, local_endpoints=by_pid)
+    expected = Counter(reader["pid"] for reader in readers)
+    # A new TCP connection may receive a previously used ephemeral port.
+    # ss -e provides a kernel socket cookie that identifies the connection itself.
+    sockets = {pid: {} for pid in expected}
+    for line in result.stdout.splitlines():
+        for pid in expected:
+            if f"pid={pid}," in line:
+                fields = line.split()
+                cookie = next((f[3:] for f in fields if f.startswith("sk:")), None)
+                require(cookie, "Missing socket cookie for an owned monitor connection")
+                sockets[pid][fields[2]] = cookie
+    cookies = {cookie for peers in sockets.values() for cookie in peers.values()}
+    evidence.record(
+        "monitor_tcp_connections",
+        phase=phase,
+        local_endpoints={pid: sorted(peers) for pid, peers in sockets.items()},
+        socket_cookies=sockets,
+    )
     require(
-        all(len(by_pid[pid]) == count for pid, count in expected.items()),
+        len(cookies) == len(readers)
+        and all(len(sockets[pid]) == count for pid, count in expected.items()),
         "Independent TCP peers differ from the planned readers",
     )
+    return cookies
+
+
+def record_inventory(evidence, windows, opened, counts, full_tree):
+    inventory = [window.step("inventory", None) for window in windows]
+    evidence.write_json("cold-inventory.json", inventory)
+    kinds = {"flow": counts["flows"], "task": counts["tasks"]}
+    if counts["containers"]:
+        kinds["container"] = counts["containers"]
+    if full_tree:
+        kinds["bunch"] = 1
+        paths_hash = inventory[0]["paths_sha256"]
+    else:
+        definition = json.loads((evidence.directory / "monitor.json").read_text())
+        paths = sorted(definition_paths(definition["root"]))
+        paths_hash = hashlib.sha256("\n".join(paths).encode()).hexdigest()
+    for index, (item, row) in enumerate(zip(inventory, opened, strict=True)):
+        require(
+            item["node_kinds"] == kinds
+            and item["paths_sha256"] == paths_hash
+            and item["query_id"] == row["query_id"]
+            and item["snapshot_id"] == row["snapshot_id"],
+            f"Window {index} inventory differs from its cold snapshot or fixture",
+        )
 
 
 def steady_refreshes(workload, group, cfg):
@@ -157,15 +200,49 @@ def run(evidence, service):
     with monitor_workload.MonitorWorkload(evidence, service) as workload:
         with ExitStack() as opening:
             windows = []
+            readers = []
+            mode = service.monitor_config["headless_mode"]
             for index, secret in enumerate(service.monitor_secrets):
                 args = service.port, secret, scope, marker, timeout
-                window = (
-                    TuiWindow(*args, evidence=evidence)
-                    if index == 0
-                    else HeadlessWindow(*args)
-                )
+                if index == 0:
+                    window = TuiWindow(*args, evidence=evidence)
+                elif mode == "process":
+                    window = HeadlessProcessWindow(
+                        *args, evidence=evidence, index=index
+                    )
+                else:
+                    window = HeadlessWindow(*args)
                 opening.callback(window.close)
                 windows.append(window)
+                pid = (
+                    os.getpid()
+                    if isinstance(window, HeadlessWindow)
+                    else window.process.pid
+                )
+                start_ticks = process_identity(pid)
+                require(start_ticks is not None, f"Window {index} exited before ready")
+                readers.append(
+                    dict(
+                        window=index,
+                        role="tui" if index == 0 else "headless",
+                        credential_file=secret.name,
+                        pid=pid,
+                        start_ticks=start_ticks,
+                    )
+                )
+            evidence.record(
+                "monitor_reader_layout",
+                headless_mode=mode,
+                runner_pid=os.getpid(),
+                server_pid=service.process.pid,
+                windows=readers,
+            )
+            if mode == "process":
+                pids = {reader["pid"] for reader in readers}
+                require(
+                    len(pids) == len(readers) and os.getpid() not in pids,
+                    "Each process-mode reader needs its own client process",
+                )
             group = MonitorGroup(evidence, windows, workload.check)
             with group:
                 opening.pop_all()  # The group now owns all readers.
@@ -176,26 +253,10 @@ def run(evidence, service):
                     all(row["nodes"] == expected for row in opened),
                     "A window missed nodes in its initial subtree",
                 )
-                check_connections(
-                    evidence, service.port, windows[0].process.pid, len(windows), "open"
+                initial_sockets = check_connections(
+                    evidence, service.port, readers, "open"
                 )
-                if full_tree:
-                    inventory = [window.step("inventory", None) for window in windows]
-                    evidence.write_json("cold-inventory.json", inventory)
-                    kinds = {
-                        "bunch": 1,
-                        "flow": counts["flows"],
-                        "container": counts["containers"],
-                        "task": counts["tasks"],
-                    }
-                    for index, item in enumerate(inventory):
-                        require(
-                            item["node_kinds"] == kinds
-                            and item["paths_sha256"] == inventory[0]["paths_sha256"]
-                            and item["query_id"] == opened[index]["query_id"]
-                            and item["snapshot_id"] == opened[index]["snapshot_id"],
-                            f"Window {index} full-tree inventory differs from its cold snapshot or fixture",
-                        )
+                record_inventory(evidence, windows, opened, counts, full_tree)
                 group.wave("unchanged", "refresh", False)
                 workload.report_meter()
                 ack = workload.set_marker(True)
@@ -218,12 +279,12 @@ def run(evidence, service):
                 group.wave("disconnect", "disconnect", False)
                 ack = workload.set_marker(True)
                 group.wave("catch-up", "reconnect", True, receipt_ns=ack)
-                check_connections(
-                    evidence,
-                    service.port,
-                    windows[0].process.pid,
-                    len(windows),
-                    "reconnect",
+                new_sockets = check_connections(
+                    evidence, service.port, readers, "reconnect"
+                )
+                require(
+                    initial_sockets.isdisjoint(new_sockets),
+                    "An original socket was still in use after reconnect",
                 )
                 steady_refreshes(workload, group, service.monitor_config)
                 waves = service.monitor_config.get("checkpoint_sync_waves", 0)

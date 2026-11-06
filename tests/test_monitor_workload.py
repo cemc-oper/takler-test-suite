@@ -23,13 +23,16 @@ from harness.monitor_workload import (
 from harness.runtime import Evidence, LocalService, RunError
 
 
-def test_freeze_smoke_config_before_launch(tmp_path, monkeypatch):
+@pytest.mark.parametrize("mode", [None, "process"])
+def test_freeze_smoke_config_before_launch(tmp_path, monkeypatch, mode):
     source = tmp_path / "overrides.toml"
     raw = (
         (ASSETS / "monitoring.toml")
         .read_bytes()
         .replace(b"windows = 4", b"windows = 10")
     )
+    if mode:
+        raw += f'\nheadless_mode = "{mode}"\n'.encode()
     source.write_bytes(raw)
     monkeypatch.setenv("SCENARIO_MONITOR_CONFIG", str(source))
     evidence = Evidence(tmp_path, SimpleNamespace(id="CAP-004"), "local")
@@ -48,11 +51,33 @@ def test_freeze_smoke_config_before_launch(tmp_path, monkeypatch):
     assert saved["tree"]["nodes"] == 34 and saved["tree"]["tasks"] == 32
     assert all(len(v["source_sha256"]) == 64 for v in saved["versions"].values())
     assert saved["config"]["windows"] == 10 and saved["config"]["job_concurrency"] == 1
+    assert saved["config"]["headless_mode"] == (mode or "thread")
     assert (
         service.process is None
         and not service.ports
         and service.checkpoint_interval == 10
     )
+
+
+@pytest.mark.parametrize(
+    ("options", "error"),
+    [
+        ('headless_mode = "other"', "must be thread or process"),
+        ('headless_mode = "process"\nslow_reader = true', "require headless_mode"),
+        ('headless_mode = "process"\nscope_rebuild = true', "require headless_mode"),
+    ],
+)
+def test_invalid_headless_mode_fails_before_start(
+    tmp_path, monkeypatch, options, error
+):
+    source = tmp_path / "mode.toml"
+    source.write_text((ASSETS / "monitoring.toml").read_text() + "\n" + options)
+    monkeypatch.setenv("SCENARIO_MONITOR_CONFIG", str(source))
+    evidence = Evidence(tmp_path, SimpleNamespace(id="CAP-004"), "local")
+    service = LocalService(evidence)
+    with pytest.raises(RunError, match=error):
+        prepare(evidence, service)
+    assert service.process is None and not service.ports
 
 
 def test_source_fingerprint_tracks_real_files_and_ignores_bytecode(tmp_path):

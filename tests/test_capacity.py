@@ -1,9 +1,11 @@
 import hashlib
 import json
+import multiprocessing
 import os
 import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,21 @@ from harness.jobs import process_identity
 from harness.runtime import Evidence, LocalService, RunError, wait_for
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_sampler_identifies_checkpoint_child_without_persisting_command_line():
+    child = multiprocessing.get_context("spawn").Process(target=time.sleep, args=(30,))
+    child.start()
+    try:
+        rows = descendants(os.getpid(), server_pid=os.getpid())
+        worker = next(row for row in rows if row["pid"] == child.pid)
+        assert worker["ppid"] == os.getpid()
+        assert worker["helper_role"] == "checkpoint_worker"
+        assert "cmdline" not in worker
+    finally:
+        child.terminate()
+        child.join(5)
+        child.close()
 
 
 def evidence(tmp_path):

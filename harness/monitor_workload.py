@@ -141,6 +141,12 @@ def prepare(evidence, service):
             f"Expected positive integer for {key}",
         )
     require(cfg["windows"] >= 2, "Monitor scenario needs a TUI and a second reader")
+    mode = cfg.setdefault("headless_mode", "thread")
+    require(mode in ("thread", "process"), "headless_mode must be thread or process")
+    require(
+        mode == "thread" or not (cfg.get("slow_reader") or cfg.get("scope_rebuild")),
+        "The slow_reader and scope_rebuild probes require headless_mode = thread",
+    )
     if "load_timeout_seconds" in cfg:
         require(
             type(cfg["load_timeout_seconds"]) is int
@@ -295,7 +301,7 @@ class MonitorWorkload:
                 Resources(
                     self.evidence,
                     self.service,
-                    job_roots=self.jobs.live_processes if detached else None,
+                    job_roots=self.jobs.live_processes,
                 )
             )
             self.host = setup.enter_context(HostObserver(self.evidence, self.service))

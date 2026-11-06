@@ -3,10 +3,6 @@
 import asyncio
 from contextlib import AsyncExitStack
 from multiprocessing.connection import Connection
-import os
-from pathlib import Path
-import socket
-import subprocess
 import sys
 import time
 from xml.etree import ElementTree
@@ -14,119 +10,21 @@ from xml.etree import ElementTree
 import grpc
 from takler.exceptions import QueryResponseError
 
+from .monitor_process import ProcessWindow
 from .runtime import RunError, require
 
 
-class TuiWindow:
-    def __init__(self, port, secret_file, scope, marker, timeout=15, *, evidence=None):
-        self.timeout = timeout
-        self.scope, self.marker = scope, marker
-        self.evidence = evidence
-        self.cleanup_outcome = None
-        self._trace = {}
-        env = {k: v for k, v in os.environ.items() if not k.startswith("TAKLER_")}
-        env.update(
-            TAKLER_SECRET_FILE=str(Path(secret_file).resolve()),
-            TAKLER_TIMEOUT="0",
-            no_proxy="localhost,127.0.0.1",
-            NO_PROXY="localhost,127.0.0.1",
-            no_grpc_proxy="localhost,127.0.0.1",
-        )
-        parent, child = socket.socketpair()
-        with parent, child:
-            self.process = subprocess.Popen(
-                [
-                    sys.executable,
-                    "-B",
-                    "-m",
-                    "harness.monitor_tui",
-                    str(child.fileno()),
-                    str(port),
-                    scope,
-                    marker,
-                    str(timeout),
-                ],
-                cwd=Path(__file__).resolve().parents[1],
-                env=env,
-                pass_fds=(child.fileno(),),
-                stdin=subprocess.DEVNULL,
-            )
-            self.conn = Connection(parent.detach())
-        try:
-            self._result()  # Import and IPC are ready; the first RPC waits for open.
-        except BaseException:
-            self.close()
-            raise
+class TuiWindow(ProcessWindow):
+    module = "harness.monitor_tui"
+    label = "Textual monitor"
 
-    def _result(self):
-        if not self.conn.poll(self.timeout + 2):
-            raise TimeoutError("Textual monitor timed out")
-        try:
-            ok, result, self._trace = self.conn.recv()
-        except EOFError as exc:
-            raise RunError("Textual monitor exited before replying") from exc
-        if not ok:
-            code, message = result
-            if code == "TimeoutError":
-                raise TimeoutError(message)
-            if code:
-                raise QueryResponseError(code, message)
-            raise RunError(message)
-        return result
+    @property
+    def step_timeout(self):
+        return self.timeout + 2
 
-    def step(self, action, expected_suspended):
-        self._trace = {}
-        self.conn.send((action, expected_suspended))
-        return self._result()
-
-    def rpc_evidence(self):
-        return self._trace
-
-    def close(self):
-        if self.cleanup_outcome is not None:
-            return self.cleanup_outcome
-        alive = self.process.poll() is None
-        sent = False
-        escalation = None
-        try:
-            try:
-                if alive and not self.conn.closed:
-                    self.conn.send(("quit", None))
-                    sent = True
-            except OSError:
-                pass
-            finally:
-                self.conn.close()
-            try:
-                self.process.wait(timeout=4)
-            except subprocess.TimeoutExpired:
-                escalation = "terminate"
-                self.process.terminate()
-                try:
-                    self.process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    escalation = "kill"
-                    self.process.kill()
-                    self.process.wait(timeout=2)
-        finally:
-            returncode = self.process.poll()
-            outcome = {
-                "pid": self.process.pid,
-                "quit_sent": sent,
-                "forced": escalation,
-                "returncode": returncode,
-                "reaped": returncode is not None,
-                "ipc_closed": self.conn.closed,
-            }
-            self.cleanup_outcome = outcome
-            if self.evidence is not None:
-                self.evidence.report["monitor_tui_cleanup"] = outcome
-                self.evidence.record("monitor_tui_cleanup", **outcome)
-        require(
-            sent and escalation is None and returncode == 0,
-            f"Textual monitor did not shut down cleanly: {outcome}",
-        )
-        return outcome
+    def record_cleanup(self, outcome):
+        self.evidence.report["monitor_tui_cleanup"] = outcome
+        self.evidence.record("monitor_tui_cleanup", **outcome)
 
 
 def _screen_observation(svg, marker, state, suspended):

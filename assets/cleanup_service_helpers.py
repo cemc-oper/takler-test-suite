@@ -22,6 +22,15 @@ def identity(pid):
     return int(fields[19]) if fields[0] not in {"Z", "X"} else None
 
 
+def helper_role(argv):
+    command = b" ".join(argv[1:])
+    if b"multiprocessing.resource_tracker" in command:
+        return "resource_tracker"
+    if b"multiprocessing.spawn" in command and b"spawn_main" in command:
+        return "checkpoint_worker"
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -69,14 +78,7 @@ def main():
             Path(os.fsdecode(argv[0])).resolve() == args.python.resolve(),
             "Unexpected executable in owned service group",
         )
-        command = b" ".join(argv[1:])
-        role = (
-            "resource_tracker"
-            if b"multiprocessing.resource_tracker" in command
-            else "checkpoint_worker"
-            if b"multiprocessing.spawn" in command and b"spawn_main" in command
-            else None
-        )
+        role = helper_role(argv)
         require(role is not None, "Unknown helper retained for inspection")
         helpers.append(
             {
