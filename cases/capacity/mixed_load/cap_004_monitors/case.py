@@ -11,6 +11,8 @@ from tempfile import TemporaryDirectory
 
 from harness import monitor_workload
 from harness.monitor_checkpoint import checkpoint_refreshes
+from harness.monitor_rebuild import verify_scope_rebuild
+from harness.monitor_slow import slow_reader_refresh
 from harness.monitor_tree import tree_counts
 from harness.monitor_tui import TuiWindow
 from harness.monitor_windows import HeadlessWindow, MonitorGroup
@@ -29,6 +31,21 @@ def prepare(evidence, service):
     require(
         not (cycles and waves), "Use separate runs for steady polls and checkpoint sync"
     )
+    slow_reader = cfg.get("slow_reader", False)
+    require(type(slow_reader) is bool, "slow_reader must be a boolean")
+    require(not (slow_reader and (cycles or waves)), "Run the slow reader separately")
+    rebuild = cfg.get("scope_rebuild", False)
+    require(type(rebuild) is bool, "scope_rebuild must be a boolean")
+    if rebuild:
+        require(
+            cfg["tree_kind"] == "operations_proxy" and not (cycles or waves),
+            "Run scope rebuild separately on the operations tree",
+        )
+        hours = cfg["structure"]["cycles"]
+        require(
+            len(hours) >= 2 and cfg["windows"] >= 1 + len(hours),
+            "Scope rebuild needs readers at the root and every cycle, including an unaffected cycle",
+        )
     if cycles:
         require(
             type(cfg.get("refresh_seconds")) is int and cfg["refresh_seconds"] > 0,
@@ -191,7 +208,16 @@ def run(evidence, service):
                 steady_refreshes(workload, group, service.monitor_config)
                 waves = service.monitor_config.get("checkpoint_sync_waves", 0)
                 sync = checkpoint_refreshes(workload, group, waves) if waves else None
+                slow = (
+                    slow_reader_refresh(workload, group)
+                    if service.monitor_config.get("slow_reader")
+                    else None
+                )
                 checks = workload.finish(group.rows)
                 if sync:
                     checks["checkpoint_sync"] = sync
+                if slow:
+                    checks["slow_reader"] = slow
+        if service.monitor_config.get("scope_rebuild"):
+            checks["scope_rebuild"] = verify_scope_rebuild(workload)
         evidence.record_checks(windows=len(windows), **checks)

@@ -22,12 +22,16 @@ class RpcTrace(grpc.UnaryUnaryClientInterceptor):
 
     def __init__(self):
         self.calls = []
+        self.before_page = None
 
     def intercept_unary_unary(self, continuation, details, request):
         if not isinstance(getattr(request, "json", None), bytes):
             return continuation(details, request)
+        method = details.method.rsplit("/", 1)[-1]
+        if self.before_page is not None and method == "ReadPage":
+            self.before_page(json.loads(request.json))
         row = {
-            "method": details.method.rsplit("/", 1)[-1],
+            "method": method,
             "request_hash": hashlib.sha256(request.json).hexdigest(),
             "start_ns": time.monotonic_ns(),
             "reply_bytes": 0,
@@ -45,6 +49,10 @@ class RpcTrace(grpc.UnaryUnaryClientInterceptor):
                     row["query_error"] = error["code"]
                     if error["code"] == "reset_required":
                         row["reset_reason"] = error["message"]
+                elif payload.startswith(b'{"kind":"reset",'):
+                    reset = json.loads(payload)
+                    row["reset_reason"] = reset["reason"]
+                    row["reset_scope"] = reset["reset_scope"]
             return response
         finally:
             row["end_ns"] = time.monotonic_ns()

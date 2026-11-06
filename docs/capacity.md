@@ -87,4 +87,8 @@ SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
 
 **专门观测周期保存时的同步刷新。** 使用另一份完整配置，将顶层字段设为 `poll_cycles = 0` 和 `checkpoint_sync_waves = 3`，并按同一命令启动新的服务。每波先取得真实进度和标记写入回执，再等下一次 checkpoint 临时文件创建，然后同时放行已打开的窗口。观察器以重命名事件的同一 cookie 配对源临时文件和主文件。每窗看见新标记，且该窗所有 `ReadSince` RPC 的起止都落在创建上界至重命名下界之间，整波才计入目标。同步波最多安排目标数加两次，每次已发、未发、未命中及逐窗区间均记入私有目录的 `checkpoint-sync.json`。波次各自对应独立保存；常规 60 秒轮询单独运行和统计。[判定代码](../harness/monitor_checkpoint.py)
 
-本机 9,959 节点的常规运行已验证 4 窗、10 窗，十窗另完成 3 个独立发布期间的同步刷新。20 窗、100K 叶任务与 HPC 另列任务。[四窗基线](../../../doc/2026-11-06-multi-window-monitoring/t6-four-windows.md) · [十窗对照与复跑](../../../doc/2026-11-06-multi-window-monitoring/t7-ten-windows.md)
+**验证慢读者与查询租约过期。** 另开一轮，在业务树配置顶层设置 `poll_cycles = 0`、`slow_reader = true` 和 `scope_rebuild = true`，使用默认的零个定向保存波次。慢窗取得第 1 页后，在发出带真实游标的第 2 页前等待。写者切换标记，其余窗口全部完成同步刷新后才放行慢窗。逐项核对固定版本页、解除等待后的数据和全员增量追平。分页 RPC 与门控时间见 `slow-reader.json`，快窗及追平波次见 `windows.jsonl`。[慢读者驱动](../harness/monitor_slow.py)
+
+范围与过期专项在原读者组关闭、真实作业结束后复用相同凭据，用无界面读者分别查看根与各时次。它从输入定义计算每个范围的完整路径清单，切换一片叶的状态，核对相关及未变范围。所有连接断开至少 125 秒后重连，逐窗要求旧水位收到 `reset_required/history_expired`，然后重新取快照并再做一次增量刷新。每窗的范围、节点数、预期 reset、快照及 RPC 见 `scope-rebuild/windows.jsonl`，连接与分母见同目录的 `events.jsonl` 和 `monitor-summary.json`。[范围及重建驱动](../harness/monitor_rebuild.py)
+
+本机 9,959 节点已完成 4、10、20 窗。20 窗常规组正常读取 300/300，定向组在 3 个保存周期内完成 60/60 次同步刷新，单独验证慢窗、不同业务范围和真实租约过期后的重建。100K 叶任务与 HPC 另行验证。[四窗基线](../../../doc/2026-11-06-multi-window-monitoring/t6-four-windows.md) · [十窗对照](../../../doc/2026-11-06-multi-window-monitoring/t7-ten-windows.md) · [二十窗结果与复跑](../../../doc/2026-11-06-multi-window-monitoring/t8-twenty-windows.md)

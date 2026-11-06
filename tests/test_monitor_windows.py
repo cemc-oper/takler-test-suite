@@ -126,3 +126,18 @@ def test_transparent_retry_keeps_first_denial_in_ledger(tmp_path):
         assert group.waves[0]["retries"] == 1
         assert group.waves[0]["rejected"] == 1
         assert ledger(evidence)[0]["rpcs"][0]["query_error"] == "resource_exhausted"
+
+
+def test_trace_keeps_reset_scope_and_reason_from_the_wire():
+    trace = RpcTrace()
+    method = SimpleNamespace(method="/Query/ReadSince")
+    request = SimpleNamespace(json=b'{"kind":"since_request"}')
+    response = SimpleNamespace(
+        code=lambda: grpc.StatusCode.OK,
+        result=lambda: SimpleNamespace(
+            json=b'{"kind":"reset","reason":"history_expired","reset_scope":"/flow"}'
+        ),
+    )
+    trace.intercept_unary_unary(lambda *_: response, method, request)
+    (call,) = trace.calls
+    assert (call["reset_reason"], call["reset_scope"]) == ("history_expired", "/flow")

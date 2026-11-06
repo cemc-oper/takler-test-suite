@@ -286,7 +286,9 @@ class MonitorWorkload:
         with ExitStack() as setup:
             self.jobs = Jobs(self.evidence, self.service, scope=SCOPE, depth=1)
             detached = bool(
-                self.cfg.get("poll_cycles") or self.cfg.get("checkpoint_sync_waves")
+                self.cfg.get("poll_cycles")
+                or self.cfg.get("checkpoint_sync_waves")
+                or self.cfg.get("slow_reader")
             )
             self.resources = setup.enter_context(
                 Resources(
