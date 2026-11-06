@@ -92,6 +92,7 @@ class LocalService:
         self.transport = evidence.report.get("transport", "grpc")
         self.checkpoint = self.directory / "takler.check"
         self.checkpoint_interval = 600
+        self.stop_timeout = 15
         self.config = self.directory / "connect.yaml"
         self.process = None
         self.generation = 0
@@ -340,7 +341,7 @@ class LocalService:
             if process.poll() is None:
                 process.terminate()
                 try:
-                    process.wait(timeout=15)
+                    process.wait(timeout=self.stop_timeout)
                 except subprocess.TimeoutExpired:
                     forced = True
                     process.kill()

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from harness.catalog import load_catalog
-from harness.jobs import Jobs, peak
+from harness.jobs import Jobs, peak, process_identity
 from harness.runtime import Evidence, RunError, wait_for
 
 
@@ -20,6 +20,28 @@ def test_process_peak_counts_overlap_and_shared_endpoints():
     assert peak(intervals, "start", "end") == 2
     with pytest.raises(RunError, match="Empty process observation interval"):
         peak({"bad": {"start": 5, "end": 5}}, "start", "end")
+
+
+def test_proc_disappearing_during_stat_read_is_an_exited_job(monkeypatch):
+    process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    original = Path.read_text
+
+    def exit_during_read(path, *args, **kwargs):
+        if path == Path(f"/proc/{process.pid}/stat"):
+            process.terminate()
+            process.wait(timeout=3)
+            raise ProcessLookupError("process exited after opening proc stat")
+        return original(path, *args, **kwargs)
+
+    try:
+        assert process_identity(process.pid) is not None
+        monkeypatch.setattr(Path, "read_text", exit_during_read)
+        assert process_identity(process.pid) is None
+        assert process.returncode is not None
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=3)
 
 
 def test_case_error_releases_owned_job_and_records_exit(tmp_path):

@@ -480,3 +480,42 @@ capabilities = ["takflow", "orvix_local", "parallel", "failure", "manual_tui"]
 profiles = ["local"]
 status = "executable"
 entry = "cases/execution/submission/exe_003_workflow/case.py"
+
+[[cases]]
+id = "CAP-001"
+title = "大树与宽字段查询"
+area = "capacity"
+category = "large_trees"
+kind = "service"
+difficulty = "L4"
+roles = ["developer", "administrator"]
+capabilities = ["large_tree", "full_snapshot", "resources", "slow"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/capacity/large_trees/cap_001_queries/case.py"
+
+[[cases]]
+id = "CAP-002"
+title = "活跃流程混合负载"
+area = "capacity"
+category = "mixed_load"
+kind = "job"
+difficulty = "L4"
+roles = ["developer", "administrator"]
+capabilities = ["mixed_load", "checkpoint", "resources", "slow"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/capacity/mixed_load/cap_002_mixed/case.py"
+
+[[cases]]
+id = "CAP-003"
+title = "持续运行与资源回收"
+area = "capacity"
+category = "endurance"
+kind = "job"
+difficulty = "L4"
+roles = ["developer", "administrator"]
+capabilities = ["endurance", "slow_consumers", "recovery", "resources", "slow"]
+profiles = ["local"]
+status = "executable"
+entry = "cases/capacity/endurance/cap_003_endurance/case.py"

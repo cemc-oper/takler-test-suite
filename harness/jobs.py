@@ -17,7 +17,7 @@ from .runtime import require, wait_for
 def process_identity(pid):
     try:
         fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
-    except FileNotFoundError:
+    except (FileNotFoundError, ProcessLookupError):
         return None
     return int(fields[19]) if fields[0] not in {"Z", "X"} else None
 
@@ -36,9 +36,10 @@ def peak(intervals, start, end):
 
 
 class Jobs:
-    def __init__(self, evidence, service):
+    def __init__(self, evidence, service, *, scope="/"):
         self.evidence = evidence
         self.service = service
+        self.scope = scope
         self.data = evidence.directory / "data"
         self.data.mkdir()
         self.intervals = {}
@@ -147,7 +148,7 @@ class Jobs:
                 self.service.client("begin", flow.name)
 
     def view(self, label):
-        nodes = snapshot(self.evidence, self.service, label)
+        nodes = snapshot(self.evidence, self.service, label, scope=self.scope)
         for path, node in nodes.items():
             groups = node["groups"]
             runtime = groups.get("runtime", {})

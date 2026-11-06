@@ -1,6 +1,6 @@
 # 用例、交付选择与证据索引
 
-本轮固定选择见 [wsl-delivery.toml](../selections/wsl-delivery.toml)：37 个可执行用例，每项一次基线运行，另加 9 个 Go/HTTP 代表组合，共 46 次自动运行。offline 与 online 严格分开。自动结果和实际 gRPC 组合 TUI 观察另行验收，不将历史运行计为本轮复现。
+当前 catalog 共 40 个可执行用例。SCN-11 固定选择见 [wsl-delivery.toml](../selections/wsl-delivery.toml)：其中 37 项各一次基线运行，另加 9 个 Go/HTTP 代表组合，共 46 次自动运行。offline 与 online 严格分开。自动结果和实际 gRPC 组合 TUI 观察另行验收，不将历史运行计为本轮复现。新增的 3 项 CAP 使用独立的 SCN-10 冻结配置和长时运行，不自动扩入原选择。
 
 | 用例 | 名称与实现 | 本轮选择 | 历史证据 |
 | --- | --- | --- | --- |
@@ -42,9 +42,19 @@
 | TIM-001 | [当前时间条件](../cases/scheduling/time_repeat/tim_001_wall_time/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
 | TIM-002 | [当前循环与轮次身份](../cases/scheduling/time_repeat/tim_002_repeat_date/case.py) | Python/gRPC | [记录](../../../doc/2026-10-10-scenario-testing/records/scn-06/scn-06-wsl-controls-time-exceptions.md) |
 
-## 本轮使用范围
+## SCN-10 容量补充
 
-- 已实现：DEF/PAR、BAS/DPL、EXE、DEP/RES、CTL/TIM、QRY、SEC、RCV 共 37 项；本轮运行结果逐项见 [SCN-11 交付记录](../../../doc/2026-10-10-scenario-testing/records/scn-11/scn-11-wsl-delivery.md)。
+| 用例 | 名称与实现 | 第一轮组合 | 验证状态和证据 |
+| --- | --- | --- | --- |
+| CAP-001 | [大树与宽字段读取](../cases/capacity/large_trees/cap_001_queries/case.py) | Python/gRPC；真实服务，0 个业务作业 | 通过：1k/10k/100k 叶任务、五组完整字段、18 次读取 |
+| CAP-002 | [活跃混合负载](../cases/capacity/mixed_load/cap_002_mixed/case.py) | Python/gRPC；本地真实 Shell | 通过：120 秒、4 并发、16 个真实作业、双读者 |
+| CAP-003 | [耐久与资源回收](../cases/capacity/endurance/cap_003_endurance/case.py) | Python/gRPC；本地真实 Shell | 通过：7,200 秒、240 轮、960 个真实作业、135 秒回收和冻结趋势门槛；保留快照上限补充通过 |
+
+负载、资源门槛和测量口径见 [容量运行说明](capacity.md)。三项采用共享开发主机，未隔离其他任务，不作独占性能基准；内部 worker 队列精确上限未测。独立验收、失败批次、源码哈希、复跑命令和公开证据见 [SCN-10 记录](../../../doc/2026-10-10-scenario-testing/records/scn-10/scn-10-wsl-capacity.md)。
+
+## SCN-11 使用范围
+
+- SCN-11 已交付：DEF/PAR、BAS/DPL、EXE、DEP/RES、CTL/TIM、QRY、SEC、RCV 共 37 项；当轮运行结果逐项见 [SCN-11 交付记录](../../../doc/2026-10-10-scenario-testing/records/scn-11/scn-11-wsl-delivery.md)。另新增的 CAP 3 项按上表和 SCN-10 单独验收。
 - 自动集合中，所有在线用例复现 Python/gRPC；Go/HTTP 只复现表中 9 项。其他组合若有历史实跑，以上链接保持当轮范围，不推定全体 37 项都验证四组合。
 - 人工必测：本次新建的 EXE-003 + QRY-004 组合，使用 Python TUI/gRPC、真实 PTY 键鼠、原生 Screenshot SVG/PNG，核对选择/展开、成功与失败、queued 未尝试、active 身份、stale 和恢复，退出及清理另有报告；由代理操作终端并查看截图，不表示独立真人签字。
 - 历史人工：SCN-07 的 QRY-004 gRPC/HTTP 交互记录继续可追溯。SCN-09 的“未取得组合截图”保持原始记录，本轮 gRPC 新证据单独归档；新组合 HTTP 仍未核验，Go TUI 不适用。
@@ -53,7 +63,7 @@
 
 | 分类 | 具体范围 | 本轮处理 |
 | --- | --- | --- |
-| 未实现/暂停 | CAP-001–003：大树规模、持续混合负载、长期趋势 | 未放入可执行 catalog；SCN-10 继续另行排期，不作性能/容量承诺 |
+| 容量组合边界 | CAP-001–003 的 Go、HTTP 与生产 HPC | 首轮只验证 WSL/Python/gRPC，不作跨环境性能/容量承诺 |
 | 未覆盖环境 | Windows 原生执行、远程/HPC 调度器、远程输出读取 | 仅 WSL 本机 Shell/orvix local 与本地文件系统，不外推 |
 | 未覆盖组合 | 表外 Go/HTTP/Python HTTP/Go gRPC 的本轮重跑、新组合 HTTP TUI | 引用历史边界，标为本轮未复现或未核验 |
 | 安装边界 | 空缓存机器的完整离线安装 | 本轮构建新 wheel/venv，依赖来自已准备基线，记录此限制 |

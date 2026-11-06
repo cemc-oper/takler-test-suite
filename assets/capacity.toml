@@ -1,0 +1,39 @@
+schema_version = 1
+name = "wsl-first-capacity"
+sample_seconds = 1
+checkpoint_seconds = 20
+rpc_timeout_seconds = 60
+load_timeout_seconds = 180
+stop_timeout_seconds = 180
+max_rss_bytes = 8589934592
+max_artifact_bytes = 8589934592
+min_available_bytes = 2147483648
+max_owned_processes = 128
+
+[large]
+tasks = [1000, 10000, 100000]
+tasks_per_flow = 2000
+tasks_per_group = 100
+parameter_bytes = 256
+wide_field_bytes = 90000
+samples = 3
+summary_deadline_seconds = 60
+full_deadline_seconds = 300
+
+[mixed]
+backdrop_tasks = 1000
+concurrency = 4
+duration_seconds = 120
+round_seconds = 30
+query_seconds = 2
+meters_per_job = 2
+slow_every_rounds = 5
+slow_seconds = 2
+
+[endurance]
+duration_seconds = 7200
+warmup_seconds = 600
+settle_seconds = 135
+max_rss_slope_bytes_per_hour = 67108864
+max_fd_growth = 32
+max_thread_growth = 32

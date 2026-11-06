@@ -4,7 +4,7 @@ Takler 的公开行为测试套件，支持自动化场景验证和操作演练�
 
 [快速开始](docs/quickstart.md) · [基线与安装](docs/baseline.md) · [用例和覆盖索引](docs/coverage.md) · [失败排查与清理](docs/troubleshooting.md) · [人工演练](docs/operator-exercise.md)
 
-当前接入 37 个用例：DEF-001–003、PAR-001–002，BAS-001–003、DPL-001–003，EXE-001–003、DEP-001–003、RES-001–002，CTL-001–003、TIM-001–002，QRY-001–005、SEC-001–004，以及 RCV-001–004。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。SEC-002 另需 `openssl`，EXE-003 另需同环境中的 takflow 和绝对路径 `SCENARIO_ORVIX_BIN`。
+当前接入 40 个用例：DEF-001–003、PAR-001–002，BAS-001–003、DPL-001–003，EXE-001–003、DEP-001–003、RES-001–002，CTL-001–003、TIM-001–002，QRY-001–005、SEC-001–004，RCV-001–004，以及 CAP-001–003。使用 Python 3.11+ 和已安装 Takler 的 Python 环境，在线用例另需 Linux/WSL 的 `ss`，HTTP 运行需要 Takler 的 HTTP extra。解释器所在环境应同时包含 `takler-server` 和 `takler-client-py`。SEC-002 另需 `openssl`，EXE-003 另需同环境中的 takflow 和绝对路径 `SCENARIO_ORVIX_BIN`。
 
 在本工作区，先在 `repo/takler/` 准备开发虚拟环境，再从工作区根目录进入本仓库执行：
 
@@ -72,6 +72,8 @@ Go 恢复用例只需 `SCENARIO_GO_CLIENT`，不依赖查询 probe。RCV-001 明
 
 ## 接入下一项
 
+CAP-001–003 已接入统一入口，第一轮基线为 Python/gRPC、本地真实 Shell、周期 checkpoint 和外部资源采样。参数冻结在 [capacity.toml](assets/capacity.toml)，CAP-003 默认包含 2 小时负载和 135 秒回收观察，不能用短运行代替。[容量运行与测量说明](docs/capacity.md)。SCN-11 的 46 次历史交付选择仍保持原清单，不自动加入这些慢用例。
+
 在 `catalog.toml` 登记用例的分类、形态、角色、能力、profile 和实现状态。可执行入口放到 `cases/<一级>/<二级>/<用例编号小写_名称>/case.py`。在线 `local` 入口定义 `run(evidence, service)`，通过共享设施调用 CLI 和记录证据。离线 `offline` 入口定义 `run(evidence)`，直接使用公开构建 API。
 
 EXE-003 已接入真实 takflow → Takler → orvix local 的成功与受控失败流程，验证 Python/Go × gRPC/HTTP 四种组合。组合演练默认完成检查后关闭服务，显式 `--keep-service` 才保留服务供 CLI/TUI 观察；finish、stop、Ctrl-C 和截止都有清理路径。[跨组件运行与人工演练说明](docs/operator-exercise.md)
@@ -99,5 +101,7 @@ EXE-003 已接入真实 takflow → Takler → orvix local 的成功与受控失
 [SCN-08 重启恢复与组合故障](../../doc/2026-10-10-scenario-testing/records/scn-08/scn-08-wsl-recovery-faults.md)
 
 [SCN-09 跨组件流程与人工演练整合](../../doc/2026-10-10-scenario-testing/records/scn-09/scn-09-wsl-workflow-exercise.md)
+
+[SCN-10 冻结容量、两小时耐久与共享主机测量边界](../../doc/2026-10-10-scenario-testing/records/scn-10/scn-10-wsl-capacity.md)
 
 [SCN-11 使用文档、全新目录复现与选定范围交付](../../doc/2026-10-10-scenario-testing/records/scn-11/scn-11-wsl-delivery.md)
