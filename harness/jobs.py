@@ -114,7 +114,15 @@ class Jobs:
             "exit_upper_ns" in item for item in self.intervals.values()
         )
 
-    def flow(self, name):
+    def live_processes(self):
+        # The observer may register a new attempt while a resource sample runs.
+        return [
+            (item["pid"], item["start_ticks"])
+            for item in self.intervals.copy().values()
+            if "exit_upper_ns" not in item
+        ]
+
+    def flow(self, name, *, detached=False):
         flow = Flow(name)
         flow.add_parameter(
             {
@@ -124,7 +132,9 @@ class Jobs:
                 if self.service
                 else "takler-client-py",
                 "TAKLER_SHELL_JOB_CMD": (
-                    "{{ TAKLER_JOB | shquote }} 1> {{ TAKLER_JOBOUT | shquote }} 2>&1"
+                    "setsid {{ TAKLER_JOB | shquote }} > {{ TAKLER_JOBOUT | shquote }} 2>&1 < /dev/null &"
+                    if detached
+                    else "{{ TAKLER_JOB | shquote }} 1> {{ TAKLER_JOBOUT | shquote }} 2>&1"
                 ),
             }
         )

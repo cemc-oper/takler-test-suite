@@ -8,6 +8,10 @@ from unittest.mock import Mock
 
 import pytest
 
+from takler.client.grpc_transport import GrpcTransport
+from takler.core import Flow
+from takler.protocol.commands import ServiceResponse
+
 from harness.monitor_workload import (
     ASSETS,
     MonitorWorkload,
@@ -66,6 +70,52 @@ def test_source_fingerprint_tracks_real_files_and_ignores_bytecode(tmp_path):
     assert (
         initial["source_sha256"]
         != source_version(tmp_path, ["package"])["source_sha256"]
+    )
+
+
+@pytest.mark.parametrize("fail_load", [True, False])
+def test_authenticated_setup_records_each_command(tmp_path, monkeypatch, fail_load):
+    evidence = Evidence(tmp_path, SimpleNamespace(id="CAP-004"), "local")
+    service = LocalService(evidence)
+    service.port = 65535
+    service.monitor_config = service.capacity = {
+        "job_concurrency": 1,
+        "load_timeout_seconds": 180,
+    }
+    service.env["TAKLER_SECRET_FILE"] = str(tmp_path / "writer")
+    workload = MonitorWorkload(evidence, service)
+    workload.host = workload.resources = Mock()
+
+    def execute(transport, command, payload):
+        assert transport.single_timeout == 180 and transport.retry_window == 0
+        assert transport.secret_file == service.env["TAKLER_SECRET_FILE"]
+        if fail_load:
+            raise TimeoutError("test setup deadline")
+        return ServiceResponse(flag=0, message="ok")
+
+    monkeypatch.setattr(GrpcTransport, "call", execute)
+    monkeypatch.setattr(GrpcTransport, "open", lambda self: None)
+    if fail_load:
+        with pytest.raises(TimeoutError):
+            workload.load_flow(Flow("monitor"))
+    else:
+        workload.load_flow(Flow("monitor"))
+    rows = [
+        json.loads(line)
+        for line in (evidence.directory / "events.jsonl").read_text().splitlines()
+    ]
+    assert [r["command"] for r in rows] == (
+        ["load"] if fail_load else ["load", "begin"]
+    )
+    assert all(
+        r["kind"] == "monitor_setup_command"
+        and r["success"] == (not fail_load)
+        and r["start_ns"] <= r["end_ns"]
+        for r in rows
+    )
+    assert (
+        rows[0]["definition_bytes"]
+        == (evidence.directory / "monitor.json").stat().st_size
     )
 
 

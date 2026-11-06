@@ -78,9 +78,9 @@ SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
 | --- | --- |
 | 实际树、窗口数和配置来源 | `monitor-config.json` 保存 TOML 路径、SHA256、生成条件和启动前主机样本 |
 | 哪个窗口、哪次请求失败或最慢 | `windows.jsonl` 逐条保存计划/启动/完成时间、查询身份、水位、异常和 RPC。正常窗口有视图可用时刻，实际 TUI 还有屏幕可见时刻。`monitor-summary.json` 按波次汇总，含预期越权拒绝 |
-| 调度、作业回执与保存 | `child-receipts.jsonl` 保存真实 CLI 上报区间，`checkpoint-events.jsonl` 保存外部文件事件。`monitor-measurements.json` 汇总监控和上报可能与保存文件 I/O 重叠的样本 |
+| 调度、作业回执与保存 | `child-receipts.jsonl` 保存真实 CLI 上报区间及其中每次 gRPC 的方法、状态与独立起止时间，`checkpoint-events.jsonl` 保存外部文件事件。`monitor-measurements.json` 汇总监控和上报可能与保存文件 I/O 重叠的样本 |
 | 同机干扰与清理 | `host-resources.jsonl` 记录 CPU、内存、swap 和磁盘，`resources.jsonl` 记录本次进程树，`report.json` 记录结果和清理状态 |
 
 文件事件只能估计 checkpoint 写盘重叠，样本数为零时无法比较保存期间的延迟。三个无界面读者的 CPU 与内存合计在 runner 进程，TUI 与服务进程可按 PID 区分。主机同时运行的其他工作会影响资源与响应耗时。默认停止线要求可用内存至少 4 GiB、证据盘余量至少 20 GiB、较启动时的 swap 增长至多 1 GiB、自有进程 RSS 合计至多 8 GiB。
 
-**选择其他规模时使用完整 TOML。** `SCENARIO_MONITOR_CONFIG` 选择整个文件，各字段来自所选文件。复用某种树形时，复制该配置、修改 `windows` 并保存为独立文件，再把命令中的 TOML 路径改为该文件的绝对路径。`assets/monitoring-operations.toml` 是单独的工程替身配置，只有显式选择才会加载。其结构包含四个起报时次、数据/图形/归档三个阶段及预报时效和产品，默认合计 9,959 个节点、9,509 个叶任务。业务树 4、10、20 个窗口和 100K **叶任务**余量分档均待确认机器空闲后执行，小树运行只验证工具。该配置安排 10 个 60 秒轮询周期、4 个真实作业，每轮各作业上报一次进度并切换标记，保存周期 20 秒。实际生产变化率仍待校准。[工程替身配置](../assets/monitoring-operations.toml) · [工作区实施方案](../../../doc/2026-11-06-multi-window-monitoring/README.md)
+**选择其他规模时使用完整 TOML。** `SCENARIO_MONITOR_CONFIG` 选择整个文件，各字段来自所选文件。复用某种树形时，复制该配置、修改 `windows` 并保存为独立文件，再把命令中的 TOML 路径改为该文件的绝对路径。`assets/monitoring-operations.toml` 是单独的工程替身配置，只有显式选择才会加载。其结构包含四个起报时次、数据/图形/归档三个阶段及预报时效和产品，默认合计 9,959 个节点、9,509 个叶任务。业务结构替身的 4 窗口档已通过，10/20 窗口和 100K **叶任务**余量分档另行安排。[4 窗口实测](../../../doc/2026-11-06-multi-window-monitoring/t6-four-windows.md)该配置安排 10 个 60 秒轮询周期、4 个真实作业，每轮各作业上报一次进度并切换标记，保存周期 20 秒。准备阶段 LOAD 和 BEGIN 各有 180 秒单次预算，单独记耗时及定义字节。真实长作业由本地后台 Shell 执行，按所观测的 PID 与启动标识把作业及其子进程计入自有资源停止线。实际生产变化率仍待校准。[工程替身配置](../assets/monitoring-operations.toml) · [工作区实施方案](../../../doc/2026-11-06-multi-window-monitoring/README.md)

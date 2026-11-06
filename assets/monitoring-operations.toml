@@ -4,6 +4,7 @@ name = "operations-structure-proxy-v1"
 tree_kind = "operations_proxy"
 windows = 4
 job_concurrency = 4
+load_timeout_seconds = 180
 rpc_timeout_seconds = 15
 checkpoint_seconds = 20
 min_periodic_publications = 2

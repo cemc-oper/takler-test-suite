@@ -17,13 +17,14 @@ from .runtime import require
 
 
 class Commands:
-    def __init__(self, service):
+    def __init__(self, service, *, secret_file=None):
         self.client = TaklerServiceClient(
             transport=GrpcTransport(
                 host="127.0.0.1",
                 port=service.port,
                 single_timeout=service.capacity["load_timeout_seconds"],
                 retry_window=0,
+                secret_file=secret_file,
             )
         )
 

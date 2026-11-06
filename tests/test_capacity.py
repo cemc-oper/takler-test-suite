@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -9,6 +10,7 @@ import pytest
 
 from harness.capacity import Resources, descendants, prepare
 from harness.catalog import load_catalog
+from harness.jobs import process_identity
 from harness.runtime import Evidence, LocalService, RunError, wait_for
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -102,3 +104,25 @@ def test_proc_persistent_permission_error_remains_a_measurement_failure(monkeypa
     monkeypatch.setattr(Path, "iterdir", denied)
     with pytest.raises(PermissionError, match="live process remains unreadable"):
         descendants(os.getpid())
+
+
+def test_detached_job_tree_is_counted_once_and_start_time_must_match():
+    with subprocess.Popen(
+        ["sh", "-c", 'sleep 30 & echo "$!"; wait'],
+        start_new_session=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    ) as job:
+        try:
+            child = int(job.stdout.readline())
+            root = (job.pid, process_identity(job.pid))
+            # The sampler root cannot reach its parent; a registered job adds
+            # the full subtree. Overlapping roots must not double count RSS.
+            rows = descendants(child, extra_roots=[root, root])
+            assert sorted(row["pid"] for row in rows) == sorted([child, job.pid])
+            stale = (job.pid, root[1] - 1)
+            assert [r["pid"] for r in descendants(child, extra_roots=[stale])] == [
+                child
+            ]
+        finally:
+            os.killpg(job.pid, signal.SIGTERM)

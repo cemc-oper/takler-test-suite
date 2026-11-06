@@ -69,8 +69,12 @@ def test_case_error_releases_owned_job_and_records_exit(tmp_path):
                     lambda: "sample" in jobs.intervals,
                     timeout=3,
                 )
+                assert jobs.live_processes() == [
+                    (process.pid, process_identity(process.pid))
+                ]
                 raise RunError("controlled scenario failure")
         assert process.wait(timeout=3) == 0
+        assert not jobs.live_processes()
         saved = json.loads((evidence.directory / "process-intervals.json").read_text())
         assert saved["observer_error"] is None
         interval = saved["intervals"]["sample"]
@@ -92,6 +96,10 @@ def test_controlled_template_renders_quoted_path_without_running(tmp_path):
     evidence = Evidence(tmp_path / "path with spaces and ' quote", case, "local")
     jobs = Jobs(evidence, None)
     flow = jobs.flow("preview")
+    assert "&" not in flow.find_parameter("TAKLER_SHELL_JOB_CMD").value[-1:]
+    detached = jobs.flow("steady", detached=True)
+    command = detached.find_parameter("TAKLER_SHELL_JOB_CMD").value
+    assert command.startswith("setsid ") and command.endswith("< /dev/null &")
     task = jobs.task(flow, "work")
     task.create_job_script()
     script = Path(task.find_parameter("TAKLER_JOB").value)

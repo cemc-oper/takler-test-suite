@@ -61,12 +61,13 @@ def prepare(evidence, service):
     )
 
 
-def descendants(root):
+def descendants(root, *, extra_roots=()):
     from .jobs import process_identity
 
-    pending, result = [root], []
+    pending, result = [(root, None), *extra_roots], []
+    seen = set()
     while pending:
-        pid = pending.pop()
+        pid, expected_identity = pending.pop()
         base = Path(f"/proc/{pid}")
         for attempt in range(4):
             try:
@@ -74,6 +75,10 @@ def descendants(root):
                 if fields[0] in {"Z", "X"}:
                     break
                 identity = int(fields[19])
+                if expected_identity is not None and expected_identity != identity:
+                    break
+                if (pid, identity) in seen:
+                    break
                 status = dict(
                     line.split(":", 1)
                     for line in (base / "status").read_text().splitlines()
@@ -90,8 +95,9 @@ def descendants(root):
                     int(p) for p in (base / f"task/{pid}/children").read_text().split()
                 ]
                 if process_identity(pid) == identity:
+                    seen.add((pid, identity))
                     result.append(row)
-                    pending.extend(children)
+                    pending.extend((child, None) for child in children)
                 break
             except (FileNotFoundError, ProcessLookupError):
                 break
@@ -107,8 +113,9 @@ def descendants(root):
 
 
 class Resources:
-    def __init__(self, evidence, service):
+    def __init__(self, evidence, service, *, job_roots=None):
         self.evidence, self.service, self.config = evidence, service, service.capacity
+        self.job_roots = job_roots
         self.phase, self.error, self.samples, self.windows = "setup", None, [], []
         self.done = threading.Event()
         self.thread = threading.Thread(target=self.observe, daemon=True)
@@ -132,7 +139,7 @@ class Resources:
                     (s["processes"] for s in self.samples), default=0
                 ),
                 "error": self.error,
-                "scope": "runner plus live descendants; summed RSS may double-count shared pages; CPU ticks are per process identity",
+                "scope": "runner and its descendants; for detached jobs also include each observed PID/start time and its descendants; summed RSS may double-count shared pages; CPU ticks are per process identity",
                 "checkpoint_windows": self.windows,
             },
         )
@@ -215,7 +222,8 @@ class Resources:
                     if now < sample_at:
                         continue
                     sample_at = now + int(self.config["sample_seconds"] * 1e9)
-                    processes = descendants(os.getpid())
+                    job_roots = self.job_roots() if self.job_roots else ()
+                    processes = descendants(os.getpid(), extra_roots=job_roots)
                     if now >= disk_at:
                         disk_bytes = 0
                         for path in self.evidence.directory.rglob("*"):
@@ -241,6 +249,8 @@ class Resources:
                         "available_bytes": available,
                         "identities": processes,
                     }
+                    if self.job_roots:
+                        sample["job_roots"] = job_roots
                     self.samples.append(sample)
                     output.write(json.dumps(sample) + "\n")
                     output.flush()

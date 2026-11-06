@@ -17,8 +17,10 @@ import takler
 from takler.serialization.checkpoint import restore_checkpoint
 
 from .capacity import Resources
+from .capacity_load import Commands
 from .jobs import Jobs
 from .monitor_tree import add_backdrop, tree_counts
+from .online import write_definition
 from .recovery import status
 from .runtime import EnvironmentBlocked, require, timestamp, wait_for
 
@@ -138,6 +140,12 @@ def prepare(evidence, service):
             f"Expected positive integer for {key}",
         )
     require(cfg["windows"] >= 2, "Monitor scenario needs a TUI and a second reader")
+    if "load_timeout_seconds" in cfg:
+        require(
+            type(cfg["load_timeout_seconds"]) is int
+            and cfg["load_timeout_seconds"] > 0,
+            "Expected positive integer for load_timeout_seconds",
+        )
     counts = tree_counts(cfg)
     require(cfg["job_concurrency"] < counts["tasks"], "Reserve a distinct marker task")
     # The server falls back to its default if given a shorter interval.
@@ -198,7 +206,7 @@ def prepare(evidence, service):
                     ],
                 ),
             },
-            "child_time": "real CLI launch to exit, CLOCK_MONOTONIC, includes process startup",
+            "child_time": "CLOCK_MONOTONIC: CLI launch to exit, and separately the unary gRPC call inside that CLI",
             "checkpoint_time": "possible checkpoint file I/O overlap, temp create to primary rename; bounds include inotify sampling uncertainty",
         },
     )
@@ -276,14 +284,20 @@ class MonitorWorkload:
 
     def __enter__(self):
         with ExitStack() as setup:
-            self.resources = setup.enter_context(Resources(self.evidence, self.service))
-            self.host = setup.enter_context(HostObserver(self.evidence, self.service))
-            self.jobs = setup.enter_context(
-                Jobs(self.evidence, self.service, scope=SCOPE, depth=1)
+            self.jobs = Jobs(self.evidence, self.service, scope=SCOPE, depth=1)
+            detached = bool(self.cfg.get("poll_cycles"))
+            self.resources = setup.enter_context(
+                Resources(
+                    self.evidence,
+                    self.service,
+                    job_roots=self.jobs.live_processes if detached else None,
+                )
             )
+            self.host = setup.enter_context(HostObserver(self.evidence, self.service))
+            setup.enter_context(self.jobs)
             wait_for("monitor process sampler", self._sample_ready, timeout=5)
             self.resources.phase = "load"
-            flow = self.jobs.flow(SCOPE[1:])
+            flow = self.jobs.flow(SCOPE[1:], detached=detached)
             self.receipts = self.evidence.directory / "child-receipts.jsonl"
             wrapper = shlex.join(
                 [
@@ -305,7 +319,7 @@ class MonitorWorkload:
             marker.add_parameter("LABEL", "marker")
             marker.add_trigger("/monitor:enable_background == set")
             add_backdrop(flow, self.cfg)
-            self.jobs.load(flow, indent=None)
+            self.load_flow(flow)
             self.loaded_ns = time.monotonic_ns()
             self.active = self.jobs.phase(
                 "monitor-active", {p: "active" for p in self.paths}
@@ -325,6 +339,36 @@ class MonitorWorkload:
     def check(self):
         self.host.check()
         self.resources.check()
+
+    def load_flow(self, flow):
+        target = write_definition(self.evidence, flow, f"{flow.name}.json", indent=None)
+        with ExitStack() as setup:
+            call = self.service.client
+            if "load_timeout_seconds" in self.cfg:
+                writer = setup.enter_context(
+                    Commands(
+                        self.service, secret_file=self.service.env["TAKLER_SECRET_FILE"]
+                    )
+                )
+                call = writer.call
+            for command, argument in (("load", str(target)), ("begin", flow.name)):
+                self.check()
+                measurement = {
+                    "command": command,
+                    "start_ns": time.monotonic_ns(),
+                    "success": False,
+                }
+                if command == "load":
+                    measurement["definition_bytes"] = target.stat().st_size
+                try:
+                    call(command, argument)
+                    measurement["success"] = True
+                finally:
+                    self.evidence.record(
+                        "monitor_setup_command",
+                        **measurement,
+                        end_ns=time.monotonic_ns(),
+                    )
 
     def set_marker(self, suspended):
         self.check()
@@ -379,6 +423,21 @@ class MonitorWorkload:
                 ),
                 "Real CLI receipts differ from the validated attempt",
             )
+        child_rpcs = []
+        for receipt in receipts:
+            calls = receipt["rpcs"]
+            require(len(calls) == 1, "Expected one gRPC attempt for each child report")
+            rpc = calls[0]
+            require(
+                rpc["method"] == "RunCommand" + receipt["command"].capitalize()
+                and rpc["code"] == "OK"
+                and receipt["start_ns"]
+                <= rpc["start_ns"]
+                <= rpc["end_ns"]
+                <= receipt["end_ns"],
+                "Child gRPC evidence differs from its CLI receipt",
+            )
+            child_rpcs.append(rpc)
         last_complete_ns = max(
             r["end_ns"] for r in receipts if r["command"] == "complete"
         )
@@ -436,6 +495,7 @@ class MonitorWorkload:
                 [r for r in rows if r["action"] == "fault"], publications
             ),
             "child_cli": overlap_counts(receipts, publications),
+            "child_rpc": overlap_counts(child_rpcs, publications),
             "periodic_publications": len(publications),
             "verified_checkpoint": {
                 "sha256": hashlib.sha256(raw).hexdigest(),
