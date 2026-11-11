@@ -62,6 +62,8 @@ python=/absolute/path/to/takler-env/bin/python
 
 默认配置只运行 **34 个节点、4 个窗口**。树包含根、`/monitor` Flow 和 32 个叶任务。进程内的 3 个 Python 读者各自持有独立连接、凭据和旧视图，另一个窗口以单独进程运行真实的 Textual TUI。控制命令使用第五份凭据。窗口数由 `windows` 决定，`job_concurrency` 单独控制实际提交的 Shell 作业数。默认值为 1 个作业、10 秒周期 checkpoint 和 1 秒采样。[小树配置](../assets/monitoring.toml)
 
+HPC 共享盘的测试驱动超时可通过三个独立环境变量配置，默认仍为 child 6 秒、作业确认/退出 10 秒、普通客户端子进程 8 秒。有效值保存到 `report.json`；RPC 测量预算、工程参考线和首轮作业启动时序保持各自原配置。[控制超时配置与两组小树回归命令](control-timeouts.md)
+
 在 WSL/Linux 配好带 TUI 的 Takler 环境后，以下命令可复现小树工具验收。每次运行会在指定根目录下创建新的私有目录并打印 `RUN_ID` 与 `RUN_DIR`。
 
 ```bash

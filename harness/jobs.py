@@ -11,7 +11,7 @@ from takler.core import Flow
 from takler.tasks.shell import ShellScriptTask
 
 from .online import snapshot, write_definition
-from .runtime import require, wait_for
+from .runtime import control_timeouts, require, wait_for
 
 
 def process_identity(pid):
@@ -39,6 +39,9 @@ class Jobs:
     def __init__(self, evidence, service, *, scope="/", depth=None):
         self.evidence = evidence
         self.service = service
+        self.control_timeouts = (
+            service.control_timeouts if service is not None else control_timeouts()
+        )
         self.scope = scope
         self.depth = depth
         self.data = evidence.directory / "data"
@@ -61,7 +64,7 @@ class Jobs:
             wait_for(
                 "owned controlled jobs to exit",
                 lambda: self.all_exited(),
-                timeout=10,
+                timeout=self.control_timeouts["job"],
                 interval=0.02,
             )
         finally:
@@ -128,6 +131,7 @@ class Jobs:
             {
                 "TAKLER_HOME": str(self.evidence.directory),
                 "SCENARIO_DATA_SHELL": shlex.quote(str(self.data)),
+                "SCENARIO_CHILD_TIMEOUT_SECONDS": str(self.control_timeouts["child"]),
                 "SCENARIO_CHILD": shlex.quote(str(self.service.client_bin))
                 if self.service
                 else "takler-client-py",
@@ -263,13 +267,13 @@ class Jobs:
             wait_for(
                 "child attribute acknowledgment",
                 lambda: (self.data / f"{key}.ack{sequence}").exists(),
-                timeout=10,
+                timeout=self.control_timeouts["job"],
             )
         else:
             wait_for(
                 "job process exit",
                 lambda: "exit_upper_ns" in self.intervals[key],
-                timeout=10,
+                timeout=self.control_timeouts["job"],
                 interval=0.02,
             )
         return key
@@ -283,7 +287,11 @@ class Jobs:
         )
 
     def finish(self, expected, capacity=None):
-        wait_for("all observed jobs to exit", self.all_exited, timeout=10)
+        wait_for(
+            "all observed jobs to exit",
+            self.all_exited,
+            timeout=self.control_timeouts["job"],
+        )
         require(
             len(self.intervals) == len(expected),
             "Unexpected extra or missing execution",

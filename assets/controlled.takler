@@ -5,7 +5,7 @@ export TAKLER_PORT="{{ TAKLER_PORT }}"
 export TAKLER_NAME="{{ TAKLER_NAME }}"
 export TAKLER_ATTEMPT_ID="{{ TAKLER_ATTEMPT_ID }}"
 export TAKLER_PASS="{{ TAKLER_PASS }}"
-child() { timeout --foreground 6s {{ SCENARIO_CHILD | default('takler-client-py') }} "$@"; }
+child() { timeout --foreground {{ SCENARIO_CHILD_TIMEOUT_SECONDS | default(6) }}s {{ SCENARIO_CHILD | default('takler-client-py') }} "$@"; }
 child init --task-id "$$" --node-path "$TAKLER_NAME"
 abort_on_error() {
     result=$?

@@ -20,6 +20,22 @@ class EnvironmentBlocked(RunError):
     pass
 
 
+def control_timeouts():
+    values = {}
+    for kind, default in (("child", 6), ("job", 10), ("client", 8)):
+        name = f"SCENARIO_{kind.upper()}_TIMEOUT_SECONDS"
+        try:
+            seconds = int(os.environ.get(name, str(default)))
+        except ValueError as exc:
+            raise EnvironmentBlocked(
+                f"{name} must be a positive integer (seconds)"
+            ) from exc
+        if seconds <= 0:
+            raise EnvironmentBlocked(f"{name} must be a positive integer (seconds)")
+        values[kind] = seconds
+    return values
+
+
 def require(condition, message):
     if not condition:
         raise RunError(message)
@@ -84,6 +100,8 @@ class LocalService:
 
     def __init__(self, evidence, *, name="server"):
         self.evidence = evidence
+        self.control_timeouts = control_timeouts()
+        evidence.report["control_timeouts_seconds"] = self.control_timeouts.copy()
         self.name = name
         self.directory = (
             evidence.directory if name == "server" else evidence.directory / name
@@ -312,7 +330,7 @@ class LocalService:
                 env=self.env if env is None else env,
                 text=True,
                 capture_output=True,
-                timeout=8,
+                timeout=self.control_timeouts["client"],
             )
         except subprocess.TimeoutExpired as exc:
             self.evidence.record("client", command=name, result="timeout")

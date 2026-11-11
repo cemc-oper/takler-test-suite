@@ -28,7 +28,7 @@ run_id=$(printf '%s\n' "$run_output" | sed -n 's/^RUN_ID=//p')
 
 每次运行打印 `RUN_ID` 和 `RUN_DIR`。`report.json` 保存结果和清理状态，`events.jsonl` 以同一 run ID 记录启停和客户端命令类别，阶段快照提供可核对的任务状态。原始服务日志、生成的作业脚本和 checkpoint 留在权限为 `0700` 的运行目录。生成的作业脚本和在途 checkpoint 可能含测试 child 口令。
 
-运行通过退出 0，失败或环境缺失退出 1，目录、用例或组合不合法退出 2，Ctrl-C 退出 130。清理先向本次启动的服务发送 SIGTERM，有界等待后才对同一进程升级为 SIGKILL。当前案例的 child 调用各有 6 秒外部时限，正常停机由 Takler 清理其直接 Shell 作业。
+运行通过退出 0，失败或环境缺失退出 1，目录、用例或组合不合法退出 2，Ctrl-C 退出 130。清理先向本次启动的服务发送 SIGTERM，有界等待后才对同一进程升级为 SIGKILL。共享 controlled 模板的 child 调用默认有 6 秒外部时限，正常停机由 Takler 清理其直接 Shell 作业。共享盘环境可显式配置 child、作业等待和普通客户端子进程的控制超时，默认仍为 6/10/8 秒；有效值写入本次 `report.json`。[控制超时配置](docs/control-timeouts.md)
 
 DEP/RES 用例通过 attempt 专属文件屏障控制真实作业，条件未满足的阶段连续查询至少 13 秒，核对 queued、无 attempt 和无作业脚本。`process-intervals.json` 用 PID、内核启动刻度与 CLOCK_BOOTTIME 保存实际存活区间；资源用例同时核对服务端令牌和持有者。异常时先释放本轮 stop 屏障、等待自有作业退出，再清理服务。RES-002 会先确认旧外部进程退出，再执行 requeue。
 
