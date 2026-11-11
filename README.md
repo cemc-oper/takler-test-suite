@@ -24,7 +24,7 @@ run_id=$(printf '%s\n' "$run_output" | sed -n 's/^RUN_ID=//p')
 "$python" -B "$runner" run CTL-002 --profile local --transport http
 ```
 
-在其他目录布局中，将 `python` 设为所选 Takler 环境中解释器的绝对路径即可。运行代码和场景资产按本仓库位置定位，不读取工作区任务文档。`validate` 和 `list` 只读取目录，使用标准库。默认输出根目录是本仓库下的 `runs/`，可在子命令前指定 `--runs-dir <目录>`。使用自定义根目录时，`inspect` 也指定同一路径。`local` 默认使用 Python CLI、gRPC 和直接 Shell，`--transport http` 选择 HTTP。服务使用动态端口、独立 HOME 和 `connect.yaml`，客户端显式连接 `127.0.0.1`。gRPC 监听按 Takler 当前默认行为，请在隔离的本机环境运行。
+在其他目录布局中，将 `python` 设为所选 Takler 环境中解释器的绝对路径即可。运行代码和场景资产按本仓库位置定位，不读取工作区任务文档。`validate` 和 `list` 只读取目录，使用标准库。套件位于 `takler-devel/repo/` 时，`run` 和 `inspect` 默认使用与 `takler-devel` 同级的 `workspace/takler-test-suite/runs`。独立检出使用用户状态目录下的 `takler-test-suite/runs`，用户状态目录取绝对路径的 `XDG_STATE_HOME`，缺省为 `~/.local/state`。可在子命令前用 `--runs-dir <目录>` 选择其他私有目录，随后用同一路径执行 `inspect`。`local` 默认使用 Python CLI、gRPC 和直接 Shell，`--transport http` 选择 HTTP。服务使用动态端口、独立 HOME 和 `connect.yaml`，客户端显式连接 `127.0.0.1`。gRPC 监听按 Takler 当前默认行为，请在隔离的本机环境运行。
 
 每次运行打印 `RUN_ID` 和 `RUN_DIR`。`report.json` 保存结果和清理状态，`events.jsonl` 以同一 run ID 记录启停和客户端命令类别，阶段快照提供可核对的任务状态。原始服务日志、生成的作业脚本和 checkpoint 留在权限为 `0700` 的运行目录。生成的作业脚本和在途 checkpoint 可能含测试 child 口令。
 

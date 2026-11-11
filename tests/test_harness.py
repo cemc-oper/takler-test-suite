@@ -17,6 +17,52 @@ ROOT = Path(runner.__file__).parent
 
 
 @pytest.mark.parametrize(
+    ("workspace", "state_home", "explicit"),
+    [
+        (False, None, False),
+        (False, "", False),
+        (False, "relative", False),
+        (False, "absolute", False),
+        (False, "absolute", True),
+        (True, "absolute", False),
+        (True, "absolute", True),
+    ],
+)
+def test_inspect_uses_private_run_root(
+    tmp_path, monkeypatch, capsys, workspace, state_home, explicit
+):
+    user_home = tmp_path / "user"
+    state_dir = tmp_path / "custom-state"
+    monkeypatch.setattr(Path, "home", lambda: user_home)
+    monkeypatch.setattr(runner, "ROOT", tmp_path / "standalone")
+    runs_dir = user_home / ".local/state/takler-test-suite/runs"
+    if state_home == "absolute":
+        monkeypatch.setenv("XDG_STATE_HOME", str(state_dir))
+        runs_dir = state_dir / "takler-test-suite/runs"
+    elif state_home is None:
+        monkeypatch.delenv("XDG_STATE_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_STATE_HOME", state_home)
+    if workspace:
+        monkeypatch.setattr(
+            runner, "ROOT", tmp_path / "takler-devel/repo/takler-test-suite"
+        )
+        runs_dir = tmp_path / "workspace/takler-test-suite/runs"
+    options = []
+    if explicit:
+        runs_dir = tmp_path / "private-evidence"
+        options = ["--runs-dir", str(runs_dir)]
+    run_id = "cap-004-example"
+    report = runs_dir / run_id / "report.json"
+    report.parent.mkdir(parents=True)
+    record = {"run_id": run_id, "result": "passed"}
+    report.write_text(json.dumps(record))
+    monkeypatch.setattr(sys, "argv", ["run.py", *options, "inspect", run_id])
+    assert runner.main() == 0
+    assert json.loads(capsys.readouterr().out) == record
+
+
+@pytest.mark.parametrize(
     ("edit", "error"),
     [
         (

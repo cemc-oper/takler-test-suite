@@ -70,7 +70,7 @@ HPC 共享盘的测试驱动超时可通过三个独立环境变量配置，默�
 suite=/absolute/path/to/takler-test-suite
 python=/absolute/path/to/takler-env/bin/python
 SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
-  "$python" -Bu "$suite/run.py" --runs-dir "$suite/runs" \
+  "$python" -Bu "$suite/run.py" \
   run CAP-004 --profile local --client python --transport grpc
 ```
 

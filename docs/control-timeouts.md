@@ -27,7 +27,7 @@ env -u SCENARIO_CHILD_TIMEOUT_SECONDS \
     -u SCENARIO_JOB_TIMEOUT_SECONDS \
     -u SCENARIO_CLIENT_TIMEOUT_SECONDS \
     SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
-    "$python" -Bu "$suite/run.py" --runs-dir "$suite/runs" \
+    "$python" -Bu "$suite/run.py" \
     run CAP-004 --profile local --client python --transport grpc
 ```
 
@@ -38,7 +38,7 @@ SCENARIO_CHILD_TIMEOUT_SECONDS=30 \
 SCENARIO_JOB_TIMEOUT_SECONDS=30 \
 SCENARIO_CLIENT_TIMEOUT_SECONDS=30 \
 SCENARIO_MONITOR_CONFIG="$suite/assets/monitoring.toml" \
-    "$python" -Bu "$suite/run.py" --runs-dir "$suite/runs" \
+    "$python" -Bu "$suite/run.py" \
     run CAP-004 --profile local --client python --transport grpc
 ```
 

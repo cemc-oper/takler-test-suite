@@ -71,8 +71,20 @@ def execute(case, profile, runs_dir, transport="grpc", client="python"):
 
 
 def main():
+    devel_root = ROOT.parent.parent
+    if ROOT.parent.name == "repo" and devel_root.name == "takler-devel":
+        evidence_root = devel_root.parent / "workspace"
+    else:
+        evidence_root = Path(os.environ.get("XDG_STATE_HOME", ""))
+        if not evidence_root.is_absolute():
+            evidence_root = Path.home() / ".local" / "state"
     parser = argparse.ArgumentParser(description="Takler scenario runner")
-    parser.add_argument("--runs-dir", type=Path, default=ROOT / "runs")
+    parser.add_argument(
+        "--runs-dir",
+        type=Path,
+        default=evidence_root / "takler-test-suite" / "runs",
+        help="Private evidence directory (default: %(default)s)",
+    )
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("validate", help="Validate catalog entries and case paths")
     commands.add_parser(
