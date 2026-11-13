@@ -14,12 +14,13 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from harness.catalog import load_catalog
-from harness.jobs import Jobs
-from harness.presentation import start_showcase, finish_showcase
-from harness.runtime import Evidence, LocalService, require
+from takler_test_suite.harness.catalog import load_catalog
+from takler_test_suite.harness.jobs import Jobs
+from takler_test_suite.harness.presentation import start_showcase, finish_showcase
+from takler_test_suite.harness.runtime import Evidence, LocalService, require
+from takler_test_suite.paths import ASSETS, ROOT
 
 
 def main():
@@ -28,7 +29,7 @@ def main():
     parser.add_argument("--transport", choices=("grpc", "http"), required=True)
     args = parser.parse_args()
     os.umask(0o077)
-    case = load_catalog(Path(__file__).resolve().parents[1] / "catalog.toml")["QRY-004"]
+    case = load_catalog(ROOT / "catalog.toml")["QRY-004"]
     evidence = Evidence(args.runs_dir, case, "local")
     evidence.report.update(
         client="python", transport=args.transport, mode="interactive_fixture"
@@ -40,7 +41,7 @@ def main():
         service.start()
         with Jobs(evidence, service) as jobs:
             script = evidence.directory / "interactive.takler"
-            template = Path(__file__).with_name("controlled.takler").read_text()
+            template = (ASSETS / "controlled.takler").read_text()
             script.write_text(template.replace("150s", "900s"))
             mixed, expected = start_showcase(jobs, script=script, detached=True)
             visual = evidence.directory / "visual"

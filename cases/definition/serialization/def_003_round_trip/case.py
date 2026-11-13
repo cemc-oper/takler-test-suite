@@ -3,7 +3,7 @@ from takler.schema import parse_definition
 from takler.serialization import build_definition, export_definition
 from takler.tasks.shell import ShellScriptTask
 
-from harness.runtime import require
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence):

@@ -12,17 +12,26 @@ from contextlib import ExitStack
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from harness.jobs import process_identity
-from harness.monitoring import workload as monitor_workload
-from harness.monitoring.checkpoint import checkpoint_cold_open, checkpoint_refreshes
-from harness.monitoring.process import HeadlessProcessWindow
-from harness.monitoring.rebuild import definition_paths, verify_scope_rebuild
-from harness.monitoring.slow import slow_reader_refresh
-from harness.monitoring.tree import tree_counts
-from harness.monitoring.tui import TuiWindow
-from harness.monitoring.windows import HeadlessWindow, MonitorGroup
-from harness.recovery import cleanup_service_helpers, require_helper_runtime
-from harness.runtime import require
+from takler_test_suite.harness.jobs import process_identity
+from takler_test_suite.harness.monitoring import workload as monitor_workload
+from takler_test_suite.harness.monitoring.checkpoint import (
+    checkpoint_cold_open,
+    checkpoint_refreshes,
+)
+from takler_test_suite.harness.monitoring.process import HeadlessProcessWindow
+from takler_test_suite.harness.monitoring.rebuild import (
+    definition_paths,
+    verify_scope_rebuild,
+)
+from takler_test_suite.harness.monitoring.slow import slow_reader_refresh
+from takler_test_suite.harness.monitoring.tree import tree_counts
+from takler_test_suite.harness.monitoring.tui import TuiWindow
+from takler_test_suite.harness.monitoring.windows import HeadlessWindow, MonitorGroup
+from takler_test_suite.harness.recovery import (
+    cleanup_service_helpers,
+    require_helper_runtime,
+)
+from takler_test_suite.harness.runtime import require
 
 
 def prepare(evidence, service):

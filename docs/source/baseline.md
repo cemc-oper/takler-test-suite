@@ -1,17 +1,24 @@
 # 环境准备
 
-## 安装 Takler
+## 创建 uv 环境
 
-使用 Python 3.11 或更新版本。`validate` 和 `list` 可以直接用系统 Python 执行。运行场景时，使用已安装待测 Takler 版本的 Python 环境。
-
-从 Takler 源码检出准备开发环境时，在 **Takler 仓库**执行以下命令。将 `TAKLER_PYTHON` 保存下来，供进入套件仓库后使用。
+安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)，使用 Python 3.11 或更新版本。在**套件仓库**根目录执行以下命令。uv 根据 `uv.lock` 建立 `.venv`，并安装套件配套的 Takler、HTTP 和 TUI 依赖。
 
 ```bash
-uv sync --locked --all-groups
+uv sync --locked --group scenarios
 export TAKLER_PYTHON="$PWD/.venv/bin/python"
 ```
 
-也可以在独立虚拟环境安装待测版本的 Takler wheel，再将 `TAKLER_PYTHON` 指向该环境的 `bin/python`。安装软件包时按需选择 `http` 和 `tui` extras，运行设施测试还需要 `pytest`。Takler 源码和安装方式见 [Takler 文档](https://takler.readthedocs.io/)。
+- `--group scenarios` 用于运行常规用例和独立 TUI 演练。
+- `--group test` 会额外安装 pytest 和 Ruff。
+- `--group workflow` 会额外安装 EXE-003 所需的 takflow。批量清单包含 EXE-003 时也应选这一组。
+- `--only-group docs` 只安装文档构建依赖。可用 `--all-groups` 同步各组。
+
+`uv.lock` 通过 Git 提交锁定 Takler 和 takflow 的版本。`validate` 和 `list` 也可以直接用系统 Python 执行。
+
+## 选择待测版本
+
+如需针对另一份 Takler 源码测试，在 **Takler 仓库**执行 `uv sync --locked --all-groups`，然后把 `TAKLER_PYTHON` 设为该仓库 `.venv/bin/python` 的绝对路径。也可用 `uv venv` 和 `uv pip install` 将待测 wheel 安装到独立环境，按需选择 `http` 和 `tui` extras。直接调用所选解释器运行套件脚本即可。[Takler 文档](https://takler.readthedocs.io/)
 
 ## 在线用例的系统要求
 

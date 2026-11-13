@@ -1,6 +1,6 @@
 from takler.core import Bunch, Parameter
 
-from harness.runtime import require
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence):

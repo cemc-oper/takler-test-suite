@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from harness.capacity import Resources, descendants, prepare
-from harness.catalog import load_catalog
-from harness.jobs import process_identity
-from harness.runtime import Evidence, LocalService, RunError, wait_for
+from takler_test_suite.harness.capacity import Resources, descendants, prepare
+from takler_test_suite.harness.catalog import load_catalog
+from takler_test_suite.harness.jobs import process_identity
+from takler_test_suite.harness.runtime import Evidence, LocalService, RunError, wait_for
 
 ROOT = Path(__file__).resolve().parents[1]
 

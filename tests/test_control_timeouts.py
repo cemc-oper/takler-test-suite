@@ -7,9 +7,9 @@ from unittest.mock import Mock
 import pytest
 
 import run as runner
-from harness.catalog import load_catalog
-from harness.jobs import Jobs
-from harness.runtime import Evidence, LocalService
+from takler_test_suite.harness.catalog import load_catalog
+from takler_test_suite.harness.jobs import Jobs
+from takler_test_suite.harness.runtime import Evidence, LocalService
 
 ROOT = Path(runner.__file__).parent
 VARIABLES = (
@@ -55,7 +55,7 @@ def test_timeouts_reach_template_client_and_report(
     assert "sleep 30" not in script
     assert task.attempt_id is None and not flow.begun
     execute = Mock(return_value=SimpleNamespace(returncode=0))
-    monkeypatch.setattr("harness.runtime.subprocess.run", execute)
+    monkeypatch.setattr("takler_test_suite.harness.runtime.subprocess.run", execute)
     env = {"CUSTOM": "client override"}
     service.client("ping", env=env)
     assert execute.call_args.kwargs["timeout"] == expected["client"]
@@ -81,7 +81,7 @@ def test_job_timeout_covers_ack_exit_cleanup_and_finish(tmp_path, monkeypatch, s
     def wait(description, check, *, timeout, **kwargs):
         waits.append((description, timeout))
 
-    monkeypatch.setattr("harness.jobs.wait_for", wait)
+    monkeypatch.setattr("takler_test_suite.harness.jobs.wait_for", wait)
     jobs.action(nodes, path, "meter:1")
     jobs.action(nodes, path, "success")
     jobs.thread = Mock()

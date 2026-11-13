@@ -10,6 +10,7 @@ from pathlib import Path
 from takler.core import Flow
 from takler.tasks.shell import ShellScriptTask
 
+from ..paths import ASSETS
 from .online import snapshot, write_definition
 from .runtime import control_timeouts, require, wait_for
 
@@ -145,9 +146,7 @@ class Jobs:
         return flow
 
     def task(self, parent, name, trigger=None, body=":", script=None):
-        script = (
-            script or Path(__file__).resolve().parents[1] / "assets/controlled.takler"
-        )
+        script = script or ASSETS / "controlled.takler"
         task = parent.add_task(ShellScriptTask(name, script_path=script))
         task.add_parameter("BODY", body)
         if trigger:

@@ -4,9 +4,9 @@ from types import SimpleNamespace
 import grpc
 import pytest
 
-from harness.monitoring.slow import slow_reader_refresh
-from harness.monitoring.windows import MonitorGroup, RpcTrace
-from harness.runtime import Evidence, RunError
+from takler_test_suite.harness.monitoring.slow import slow_reader_refresh
+from takler_test_suite.harness.monitoring.windows import MonitorGroup, RpcTrace
+from takler_test_suite.harness.runtime import Evidence, RunError
 
 
 def exercise(tmp_path, *, single_page=False, peer_fails=False):

@@ -9,7 +9,7 @@ from takler.core import Flow, NodeStatus
 from takler.serialization import export_definition
 from takler.tasks.shell import ShellScriptTask
 
-from harness.runtime import RunError, wait_for
+from takler_test_suite.harness.runtime import RunError, wait_for
 
 FLOW = "/test"
 TASK = "/test/t1"

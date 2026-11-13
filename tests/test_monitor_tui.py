@@ -2,8 +2,8 @@
 
 import pytest
 
-from harness.monitoring.tui import TuiWindow, _screen_observation
-from harness.runtime import RunError
+from takler_test_suite.harness.monitoring.tui import TuiWindow, _screen_observation
+from takler_test_suite.harness.runtime import RunError
 
 
 @pytest.mark.parametrize(

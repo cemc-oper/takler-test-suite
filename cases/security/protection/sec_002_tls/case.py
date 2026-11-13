@@ -1,5 +1,10 @@
-from harness.runtime import require
-from harness.security import assert_no_secrets, denied, secure, without_config
+from takler_test_suite.harness.runtime import require
+from takler_test_suite.harness.security import (
+    assert_no_secrets,
+    denied,
+    secure,
+    without_config,
+)
 
 
 def prepare(evidence, service):

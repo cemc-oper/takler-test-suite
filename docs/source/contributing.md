@@ -8,24 +8,25 @@
 4. 记录用于判定结果的公开状态、业务输出和清理结果。使用 `evidence.record_checks()` 保存关键判据。场景专用脚本与模板可以放在用例目录中，跨用例共享的资产放在 `assets/`。
 5. 更新[用例目录](coverage.md)，执行目录校验和新增用例。共享运行设施的行为变更应在 `tests/` 添加回归测试。
 
-运行器和跨用例的设施位于 `harness/`。`harness/monitoring/` 提供 CAP-004 的监控负载、读者窗口和专项检查。
+跨用例的运行设施位于 `src/takler_test_suite/harness/`，其中 `monitoring/` 提供 CAP-004 的监控负载、读者窗口和专项检查。用例通过 `takler_test_suite.harness` 导入设施，例如 `from takler_test_suite.harness.runtime import require`。入口脚本可直接从检出目录运行。
 
 ## 运行设施测试
 
-在套件仓库根目录执行，使用[环境准备](baseline.md)中的待测解释器。完整设施测试需要 `pytest`、Takler 的 HTTP extra 和在线环境。
+在套件仓库根目录执行。完整设施测试需要[在线环境](baseline.md#在线用例的系统要求)。
 
 ```bash
-python3 -B run.py validate
-"$TAKLER_PYTHON" -B -m pytest -q -s tests
+uv sync --locked --group test
+uv run --locked --group test python -B -m pytest -q -s tests
+uv run --locked --group test ruff check .
+uv run --locked --group test ruff format --check .
 ```
 
 ## 构建文档
 
-在套件仓库根目录执行。`uvx` 会在独立工具环境中安装 Sphinx、PyData Sphinx Theme 和 MyST。MyST 支持现有 Markdown 页面与 Sphinx 目录和交叉引用。
+在套件仓库根目录执行。`docs` 组管理 Sphinx、PyData Sphinx Theme 和 MyST，与 Read the Docs 使用同一份锁文件。
 
 ```bash
-uvx --from 'sphinx>=8.1' --with-requirements docs/requirements.txt \
-    sphinx-build -M html docs/source docs/build -W
+uv run --locked --group docs sphinx-build -M html docs/source docs/build -W
 ```
 
-在浏览器打开 `docs/build/html/index.html`。`-W` 将 Sphinx 警告作为构建失败处理。文档源文件和 Sphinx 配置位于 `docs/source/`，导航从 `docs/source/index.rst` 开始。`docs/build/` 存放生成的 HTML 和构建缓存，已加入 Git 忽略规则。
+首次仅构建文档时可用 `--only-group docs` 创建只含文档依赖的环境。在浏览器打开 `docs/build/html/index.html`。`-W` 将 Sphinx 警告作为构建失败处理。文档源文件和 Sphinx 配置位于 `docs/source/`，生成的 HTML 和构建缓存位于 Git 忽略的 `docs/build/`。

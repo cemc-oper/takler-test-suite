@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from harness.jobs import Jobs
-from harness.runtime import require, wait_for
+from takler_test_suite.harness.jobs import Jobs
+from takler_test_suite.harness.runtime import require, wait_for
 
 
 def run(evidence, service):

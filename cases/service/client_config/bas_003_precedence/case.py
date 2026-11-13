@@ -2,8 +2,8 @@ import json
 
 from takler.core import Flow
 
-from harness.online import rejected, write_definition
-from harness.runtime import LocalService, require
+from takler_test_suite.harness.online import rejected, write_definition
+from takler_test_suite.harness.runtime import LocalService, require
 
 
 def run(evidence, service):

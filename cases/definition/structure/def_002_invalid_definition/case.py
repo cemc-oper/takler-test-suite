@@ -3,7 +3,7 @@ import json
 from takler.schema import DefinitionError, parse_definition
 from takler.serialization import build_definition
 
-from harness.runtime import require
+from takler_test_suite.harness.runtime import require
 
 
 def document(children=None, **root_fields):

@@ -13,31 +13,26 @@ import time
 import traceback
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from harness.catalog import load_catalog
-from harness.loader import load_entry
-from harness.presentation import finish_showcase, start_showcase
-from harness.runtime import (
+from takler_test_suite.harness.catalog import load_catalog
+from takler_test_suite.harness.loader import load_entry
+from takler_test_suite.harness.presentation import finish_showcase, start_showcase
+from takler_test_suite.harness.runtime import (
     EnvironmentBlocked,
     Evidence,
     LocalService,
     RunError,
     require,
 )
-
-ROOT = Path(__file__).resolve().parents[1]
+from takler_test_suite.paths import ASSETS, ROOT
 
 
 def observe(jobs, *, keep_service, max_seconds):
     evidence, service = jobs.evidence, jobs.service
     script = evidence.directory / "interactive.takler"
-    script.write_text(
-        Path(__file__)
-        .with_name("controlled.takler")
-        .read_text()
-        .replace("150s", "1000s")
-    )
+    template = (ASSETS / "controlled.takler").read_text()
+    script.write_text(template.replace("150s", "1000s"))
     mixed, expected = start_showcase(jobs, script=script, detached=True)
     output = service.client("show", "--scope", "/", "--show-all")
     require(

@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ..paths import ASSETS
 from .runtime import EnvironmentBlocked, require
 
 
@@ -25,7 +26,7 @@ class Probe:
             argv = [
                 sys.executable,
                 "-B",
-                str(Path(__file__).resolve().parents[1] / "assets/query_probe.py"),
+                str(ASSETS / "query_probe.py"),
             ]
         self.stderr = (evidence.directory / "probe-private.log").open("w")
         self.process = subprocess.Popen(

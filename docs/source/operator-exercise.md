@@ -14,7 +14,7 @@ QRY-004 的自动用例检查 CLI。使用以下入口可以在同一类四状�
 
 ## 跨组件流程演练
 
-EXE-003 使用 takflow 导出流程定义，Takler 加载并调度流程，orvix `local` 后端提交真实 Shell 作业。请在待测 Python 环境安装 takflow，并将 `SCENARIO_ORVIX_BIN` 设为名为 `orvix` 的绝对可执行路径。
+EXE-003 使用 takflow 导出流程定义，Takler 加载并调度流程，orvix `local` 后端提交真实 Shell 作业。使用套件的 uv 环境时执行 `uv sync --locked --group workflow` 安装 takflow。将 `SCENARIO_ORVIX_BIN` 设为名为 `orvix` 的绝对可执行路径。
 
 ```bash
 export SCENARIO_ORVIX_BIN=/absolute/path/to/bin/orvix

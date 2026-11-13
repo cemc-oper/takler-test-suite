@@ -12,8 +12,8 @@ import time
 import tomllib
 from pathlib import Path
 
-from assets.cleanup_service_helpers import helper_role
-
+from ..paths import ASSETS
+from .cleanup_service_helpers import helper_role
 from .runtime import EnvironmentBlocked, require, timestamp
 
 
@@ -23,7 +23,7 @@ def prepare(evidence, service):
     source = Path(
         os.environ.get(
             "SCENARIO_CAPACITY_CONFIG",
-            Path(__file__).resolve().parents[1] / "assets/capacity.toml",
+            ASSETS / "capacity.toml",
         )
     ).resolve()
     config = tomllib.loads(source.read_text())

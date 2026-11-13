@@ -15,7 +15,7 @@ from .process import ProcessWindow
 
 
 class TuiWindow(ProcessWindow):
-    module = "harness.monitoring.tui"
+    module = "takler_test_suite.harness.monitoring.tui"
     label = "Textual monitor"
 
     @property

@@ -9,8 +9,8 @@ from pathlib import Path
 
 import yaml
 
-from harness.jobs import Jobs
-from harness.runtime import EnvironmentBlocked, require, wait_for
+from takler_test_suite.harness.jobs import Jobs
+from takler_test_suite.harness.runtime import EnvironmentBlocked, require, wait_for
 
 ASSETS = Path(__file__).resolve().parents[4] / "assets"
 TASKS = ("prepare", "left", "right", "merge")

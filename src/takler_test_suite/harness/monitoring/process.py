@@ -9,6 +9,7 @@ import sys
 
 from takler.exceptions import QueryResponseError
 
+from ...paths import ROOT, SOURCE_DIR
 from ..runtime import RunError, require
 from .windows import HeadlessWindow, RpcTrace
 
@@ -28,7 +29,11 @@ class ProcessWindow:
         self.cleanup_outcome = None
         self._trace = {}
         env = {k: v for k, v in os.environ.items() if not k.startswith("TAKLER_")}
+        pythonpath = env.get("PYTHONPATH")
         env.update(
+            PYTHONPATH=os.pathsep.join([str(SOURCE_DIR), pythonpath])
+            if pythonpath
+            else str(SOURCE_DIR),
             TAKLER_SECRET_FILE=str(Path(secret_file).resolve()),
             TAKLER_TIMEOUT="0",
             no_proxy="localhost,127.0.0.1",
@@ -49,7 +54,7 @@ class ProcessWindow:
                     marker,
                     str(timeout),
                 ],
-                cwd=Path(__file__).resolve().parents[2],
+                cwd=ROOT,
                 env=env,
                 pass_fds=(child.fileno(),),
                 stdin=subprocess.DEVNULL,
@@ -157,7 +162,7 @@ class ProcessWindow:
 
 
 class HeadlessProcessWindow(ProcessWindow):
-    module = "harness.monitoring.process"
+    module = "takler_test_suite.harness.monitoring.process"
     label = "Headless monitor"
 
     @property

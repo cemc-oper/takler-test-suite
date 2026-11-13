@@ -1,7 +1,7 @@
 import time
 
-from harness.jobs import Jobs
-from harness.recovery import (
+from takler_test_suite.harness.jobs import Jobs
+from takler_test_suite.harness.recovery import (
     await_status,
     checkpoint,
     cleanup_service_helpers,
@@ -12,7 +12,7 @@ from harness.recovery import (
     same_runtime,
     status,
 )
-from harness.runtime import require, timestamp
+from takler_test_suite.harness.runtime import require, timestamp
 
 
 def prepare(evidence, service):

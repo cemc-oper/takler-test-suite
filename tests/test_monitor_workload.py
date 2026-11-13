@@ -12,7 +12,7 @@ from takler.client.grpc_transport import GrpcTransport
 from takler.core import Flow
 from takler.protocol.commands import ServiceResponse
 
-from harness.monitoring.workload import (
+from takler_test_suite.harness.monitoring.workload import (
     ASSETS,
     MonitorWorkload,
     check_host,
@@ -20,7 +20,7 @@ from harness.monitoring.workload import (
     prepare,
     source_version,
 )
-from harness.runtime import Evidence, LocalService, RunError
+from takler_test_suite.harness.runtime import Evidence, LocalService, RunError
 
 
 @pytest.mark.parametrize("mode", [None, "process"])
@@ -38,7 +38,7 @@ def test_freeze_smoke_config_before_launch(tmp_path, monkeypatch, mode):
     evidence = Evidence(tmp_path, SimpleNamespace(id="CAP-004"), "local")
     service = LocalService(evidence)
     monkeypatch.setattr(
-        "harness.monitoring.workload.host_sample",
+        "takler_test_suite.harness.monitoring.workload.host_sample",
         lambda directory: {
             "available_bytes": 10 << 30,
             "swap_used_bytes": 1024,
@@ -50,6 +50,7 @@ def test_freeze_smoke_config_before_launch(tmp_path, monkeypatch, mode):
     assert saved["source_sha256"] == hashlib.sha256(raw).hexdigest()
     assert saved["tree"]["nodes"] == 34 and saved["tree"]["tasks"] == 32
     assert all(len(v["source_sha256"]) == 64 for v in saved["versions"].values())
+    assert {"pyproject.toml", "uv.lock"} <= set(saved["versions"]["suite"]["inputs"])
     assert saved["config"]["windows"] == 10 and saved["config"]["job_concurrency"] == 1
     assert saved["config"]["headless_mode"] == (mode or "thread")
     assert (
@@ -258,7 +259,7 @@ def test_headroom_loads_every_shard_before_one_begin_all(tmp_path):
 
 def test_headroom_restore_detects_a_submitted_background_leaf():
     from takler.core import Bunch
-    from harness.monitoring.tree import monitor_flows
+    from takler_test_suite.harness.monitoring.tree import monitor_flows
 
     cfg = {
         "tree_kind": "operations_headroom",

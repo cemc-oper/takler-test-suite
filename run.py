@@ -5,11 +5,17 @@ import sys
 import traceback
 from pathlib import Path
 
-from harness.catalog import CatalogError, load_catalog
-from harness.loader import load_entry
-from harness.runtime import EnvironmentBlocked, Evidence, LocalService, RunError
+sys.path.insert(0, str(Path(__file__).resolve().with_name("src")))
 
-ROOT = Path(__file__).resolve().parent
+from takler_test_suite.harness.catalog import CatalogError, load_catalog
+from takler_test_suite.harness.loader import load_entry
+from takler_test_suite.harness.runtime import (
+    EnvironmentBlocked,
+    Evidence,
+    LocalService,
+    RunError,
+)
+from takler_test_suite.paths import ROOT
 
 
 def execute(case, profile, runs_dir, transport="grpc", client="python"):

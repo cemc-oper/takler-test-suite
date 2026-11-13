@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from harness.control import batch
-from harness.runtime import RunError
+from takler_test_suite.harness.control import batch
+from takler_test_suite.harness.runtime import RunError
 
 
 def test_batch_checks_order_effect_and_partial_failure():

@@ -4,11 +4,11 @@ import time
 
 from takler.core import Flow
 
-from harness.capacity import Resources, prepare as prepare, wait_until
-from harness.capacity_load import Commands, analysis
-from harness.capacity_query import FULL_GROUPS, Queries
-from harness.online import write_definition
-from harness.runtime import require
+from takler_test_suite.harness.capacity import Resources, prepare as prepare, wait_until
+from takler_test_suite.harness.capacity_load import Commands, analysis
+from takler_test_suite.harness.capacity_query import FULL_GROUPS, Queries
+from takler_test_suite.harness.online import write_definition
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence, service):

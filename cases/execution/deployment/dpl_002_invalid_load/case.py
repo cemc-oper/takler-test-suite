@@ -3,8 +3,8 @@ import json
 
 from takler.core import Flow
 
-from harness.online import rejected, snapshot, write_definition
-from harness.runtime import require
+from takler_test_suite.harness.online import rejected, snapshot, write_definition
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence, service):

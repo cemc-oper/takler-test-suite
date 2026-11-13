@@ -1,8 +1,8 @@
 import json
 import socket
 
-from harness.online import rejected
-from harness.runtime import require
+from takler_test_suite.harness.online import rejected
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence, service):

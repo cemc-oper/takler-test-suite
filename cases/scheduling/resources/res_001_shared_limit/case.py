@@ -1,4 +1,4 @@
-from harness.jobs import Jobs
+from takler_test_suite.harness.jobs import Jobs
 
 
 def run(evidence, service):

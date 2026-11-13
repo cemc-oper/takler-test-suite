@@ -8,11 +8,11 @@ import stat
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
 
 from takler.core import NodeStatus
 from takler.serialization.checkpoint import restore_checkpoint
 
+from ..paths import ASSETS
 from .jobs import process_identity
 from .runtime import EnvironmentBlocked, require, wait_for
 
@@ -167,7 +167,7 @@ def helper_command():
         "/usr/bin/python3",
         "-I",
         "-S",
-        str(Path(__file__).resolve().parents[1] / "assets/cleanup_service_helpers.py"),
+        str(ASSETS / "cleanup_service_helpers.py"),
     ]
 
 

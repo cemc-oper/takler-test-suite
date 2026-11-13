@@ -4,25 +4,21 @@
 
 ## 环境要求
 
-- Python 3.11 或更新版本。`validate` 和 `list` 只使用标准库。
-- 运行用例需要安装 Takler。在线用例在隔离的 Linux 或 WSL 环境中运行，需要 `ss`，且 `takler-server` 和 `takler-client-py` 应位于所选 Python 解释器旁。
-- HTTP、Go 客户端、TUI 以及跨组件用例的依赖见[环境准备](docs/source/baseline.md)。
+- Python 3.11 或更新版本，以及 [uv](https://docs.astral.sh/uv/getting-started/installation/)。
+- 在线用例在隔离的 Linux 或 WSL 环境中运行，需要 `ss`。Go 客户端和跨组件用例的附加依赖见[环境准备](docs/source/baseline.md)。
 
 ## 快速开始
 
 ```bash
 git clone https://github.com/cemc-oper/takler-test-suite.git
 cd takler-test-suite
+uv sync --locked --group scenarios
 python3 -B run.py validate
 python3 -B run.py list
-```
-
-按[环境准备](docs/source/baseline.md)安装待测 Takler 版本，将 `TAKLER_PYTHON` 设为该环境的解释器路径。以下命令分别运行一个离线用例和一个本地在线用例。
-
-```bash
-TAKLER_PYTHON=/absolute/path/to/takler-env/bin/python
-"$TAKLER_PYTHON" -B run.py --runs-dir ./runs run DEF-001 --profile offline
-"$TAKLER_PYTHON" -B run.py --runs-dir ./runs run EXE-001 --profile local
+uv run --locked --group scenarios python -B run.py --runs-dir ./runs \
+    run DEF-001 --profile offline
+uv run --locked --group scenarios python -B run.py --runs-dir ./runs \
+    run EXE-001 --profile local
 ```
 
 `local` 默认使用 Python CLI 和 gRPC。查看命令输出中的 `RUN_DIR`，打开该目录下的 `report.json` 获取结果与清理状态。如何按 `RUN_ID` 查询报告及批量运行用例，见[运行指南](docs/source/quickstart.md)。

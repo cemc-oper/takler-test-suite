@@ -10,10 +10,30 @@ from unittest.mock import Mock
 import pytest
 
 import run as runner
-from harness.catalog import CatalogError, load_catalog
-from harness.runtime import Evidence, LocalService, RunError, wait_for
+from takler_test_suite.harness.catalog import CatalogError, load_catalog
+from takler_test_suite.harness.runtime import Evidence, LocalService, RunError, wait_for
+from takler_test_suite.paths import ROOT
 
-ROOT = Path(runner.__file__).parent
+
+@pytest.mark.parametrize(
+    ("script", "args", "expected"),
+    [
+        ("run.py", ["validate"], "Catalog valid:"),
+        ("run.py", ["list"], "DEF-001"),
+        ("reproduce.py", ["--help"], "--workers"),
+        ("assets/cleanup_service_helpers.py", ["--help"], "--check"),
+    ],
+)
+def test_checkout_entry_without_installation(tmp_path, script, args, expected):
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", "-B", str(ROOT / script), *args],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=True,
+    )
+    assert expected in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -187,7 +207,7 @@ def test_wait_timeout():
 
 def test_helper_cleanup_refuses_a_live_service(tmp_path, monkeypatch):
     pytest.importorskip("takler")
-    from harness.recovery import cleanup_service_helpers
+    from takler_test_suite.harness.recovery import cleanup_service_helpers
 
     case = load_catalog(ROOT / "catalog.toml")["RCV-003"]
     evidence = Evidence(tmp_path, case, "local")
@@ -213,7 +233,7 @@ def test_workflow_missing_orvix_blocks_before_server_start(tmp_path, monkeypatch
 def test_security_prepare_failure_does_not_start_service(tmp_path, monkeypatch):
     entry = tmp_path / "prepare_failure.py"
     entry.write_text(
-        "from harness.runtime import RunError\n"
+        "from takler_test_suite.harness.runtime import RunError\n"
         "def prepare(evidence, service):\n"
         "    (evidence.directory / 'owned-key').touch()\n"
         "    raise RunError('fixture preparation failed')\n"

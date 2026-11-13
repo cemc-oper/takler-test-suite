@@ -1,7 +1,7 @@
 from takler.core import Bunch, Flow, NodeContainer, NodeStatus, Task
 from takler.tasks.shell import ShellScriptTask
 
-from harness.runtime import require
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence):

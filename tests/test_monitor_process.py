@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from harness.monitoring.process import HeadlessProcessWindow
-from harness.runtime import Evidence, RunError
+from takler_test_suite.harness.monitoring.process import HeadlessProcessWindow
+from takler_test_suite.harness.runtime import Evidence, RunError
 
 
 @pytest.mark.parametrize("crash", [False, True])

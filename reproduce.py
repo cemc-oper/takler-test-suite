@@ -12,9 +12,10 @@ import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.catalog import load_catalog
+sys.path.insert(0, str(Path(__file__).resolve().with_name("src")))
 
-ROOT = Path(__file__).resolve().parent
+from takler_test_suite.harness.catalog import load_catalog
+from takler_test_suite.paths import ROOT
 
 
 def main():

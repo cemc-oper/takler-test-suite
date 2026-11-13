@@ -1,10 +1,10 @@
 import time
 from datetime import datetime
 
-from harness.jobs import Jobs
-from harness.online import write_definition
-from harness.probe import Probe
-from harness.runtime import require
+from takler_test_suite.harness.jobs import Jobs
+from takler_test_suite.harness.online import write_definition
+from takler_test_suite.harness.probe import Probe
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence, service):

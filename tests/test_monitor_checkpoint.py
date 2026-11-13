@@ -4,8 +4,11 @@ from unittest.mock import Mock
 
 import pytest
 
-from harness.monitoring.checkpoint import checkpoint_cold_open, checkpoint_refreshes
-from harness.runtime import Evidence, RunError
+from takler_test_suite.harness.monitoring.checkpoint import (
+    checkpoint_cold_open,
+    checkpoint_refreshes,
+)
+from takler_test_suite.harness.runtime import Evidence, RunError
 
 
 def simulation(tmp_path, misses):
@@ -103,7 +106,9 @@ def test_create_timeout_preserves_unsent_denominator(tmp_path, monkeypatch):
     def timeout(description, check, **kwargs):
         raise RunError(f"Timed out waiting for {description}")
 
-    monkeypatch.setattr("harness.monitoring.checkpoint.wait_for", timeout)
+    monkeypatch.setattr(
+        "takler_test_suite.harness.monitoring.checkpoint.wait_for", timeout
+    )
     with pytest.raises(RunError, match="temp CREATE"):
         checkpoint_refreshes(workload, group, 3)
     (attempt,) = summary(workload)["attempts"]
@@ -130,7 +135,9 @@ def test_cold_open_qualifies_the_plan_summary_and_all_pages(
     tmp_path, monkeypatch, begin, summary, page_end, qualified
 ):
     workload, group = simulation(tmp_path, {})
-    monkeypatch.setattr("harness.monitoring.checkpoint.time.monotonic_ns", lambda: 100)
+    monkeypatch.setattr(
+        "takler_test_suite.harness.monitoring.checkpoint.time.monotonic_ns", lambda: 100
+    )
     start = {"temp_name": "fresh", "start_lower_ns": 101, "start_upper_ns": 103}
     workload.resources.latest_checkpoint_start = start
     published = {
@@ -187,13 +194,17 @@ def test_cold_open_ignores_stale_create_and_preserves_unsent_windows(
         "start_lower_ns": 90,
         "start_upper_ns": 101,
     }
-    monkeypatch.setattr("harness.monitoring.checkpoint.time.monotonic_ns", lambda: 100)
+    monkeypatch.setattr(
+        "takler_test_suite.harness.monitoring.checkpoint.time.monotonic_ns", lambda: 100
+    )
 
     def sample_once(description, check, **kwargs):
         assert not check()
         raise RunError("test CREATE timeout")
 
-    monkeypatch.setattr("harness.monitoring.checkpoint.wait_for", sample_once)
+    monkeypatch.setattr(
+        "takler_test_suite.harness.monitoring.checkpoint.wait_for", sample_once
+    )
     group.wave = Mock()
     with pytest.raises(RunError, match="CREATE timeout"):
         checkpoint_cold_open(workload, group)

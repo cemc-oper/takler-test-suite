@@ -1,8 +1,8 @@
 from takler.core import Flow
 
-from harness.online import snapshot, write_definition
-from harness.probe import Probe
-from harness.runtime import require
+from takler_test_suite.harness.online import snapshot, write_definition
+from takler_test_suite.harness.probe import Probe
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence, service):

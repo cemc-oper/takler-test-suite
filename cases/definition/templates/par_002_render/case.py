@@ -5,7 +5,7 @@ from takler.core import Flow, NodeStatus
 from takler.exceptions import JobSubmissionError
 from takler.tasks.shell import ShellScriptTask, check_job_creation
 
-from harness.runtime import require
+from takler_test_suite.harness.runtime import require
 
 
 def run(evidence):

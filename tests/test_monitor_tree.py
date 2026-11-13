@@ -3,7 +3,11 @@ from pathlib import Path
 
 from takler.core import Bunch, Flow, NodeStatus, Task
 
-from harness.monitoring.tree import add_backdrop, monitor_flows, tree_counts
+from takler_test_suite.harness.monitoring.tree import (
+    add_backdrop,
+    monitor_flows,
+    tree_counts,
+)
 
 PROFILE = Path(__file__).resolve().parents[1] / "assets/monitoring-operations.toml"
 
@@ -55,8 +59,8 @@ def test_tiny_operations_proxy_counts_and_triggers():
 def test_business_polling_clock_and_marker_without_running_business_tree(monkeypatch):
     from unittest.mock import Mock, call
 
-    from harness.catalog import load_catalog
-    from harness.loader import load_entry
+    from takler_test_suite.harness.catalog import load_catalog
+    from takler_test_suite.harness.loader import load_entry
 
     case = load_entry(
         load_catalog(PROFILE.parents[1] / "catalog.toml")["CAP-004"].entry

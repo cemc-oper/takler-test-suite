@@ -1,7 +1,12 @@
-from harness.control import password
-from harness.jobs import Jobs
-from harness.runtime import require
-from harness.security import assert_no_secrets, denied, private_secret, secure
+from takler_test_suite.harness.control import password
+from takler_test_suite.harness.jobs import Jobs
+from takler_test_suite.harness.runtime import require
+from takler_test_suite.harness.security import (
+    assert_no_secrets,
+    denied,
+    private_secret,
+    secure,
+)
 
 
 def prepare(evidence, service):

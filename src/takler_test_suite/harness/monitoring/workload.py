@@ -16,6 +16,7 @@ import tomllib
 import takler
 from takler.serialization.checkpoint import restore_checkpoint
 
+from ...paths import ASSETS, ROOT
 from ..capacity import Resources
 from ..capacity_load import Commands
 from ..jobs import Jobs
@@ -25,7 +26,6 @@ from ..runtime import EnvironmentBlocked, require, timestamp, wait_for
 from .tree import monitor_flows, tree_counts
 
 
-ASSETS = Path(__file__).resolve().parents[2] / "assets"
 SCOPE = "/monitor"
 MARKER = "/monitor/marker"
 
@@ -201,11 +201,13 @@ def prepare(evidence, service):
                     ),
                 },
                 "suite": source_version(
-                    ASSETS.parent,
+                    ROOT,
                     [
                         "run.py",
                         "catalog.toml",
-                        "harness",
+                        "pyproject.toml",
+                        "uv.lock",
+                        "src/takler_test_suite",
                         "cases/capacity/mixed_load/cap_004_monitors",
                         "assets/cleanup_service_helpers.py",
                         "assets/controlled.takler",

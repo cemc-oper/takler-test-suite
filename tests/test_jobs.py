@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from harness.catalog import load_catalog
-from harness.jobs import Jobs, peak, process_identity
-from harness.runtime import Evidence, RunError, wait_for
+from takler_test_suite.harness.catalog import load_catalog
+from takler_test_suite.harness.jobs import Jobs, peak, process_identity
+from takler_test_suite.harness.runtime import Evidence, RunError, wait_for
 
 
 def test_process_peak_counts_overlap_and_shared_endpoints():

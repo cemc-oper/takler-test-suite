@@ -1,8 +1,13 @@
 from takler.core import Flow
 
-from harness.online import snapshot, write_definition
-from harness.runtime import require
-from harness.security import assert_no_secrets, denied, secure, without_config
+from takler_test_suite.harness.online import snapshot, write_definition
+from takler_test_suite.harness.runtime import require
+from takler_test_suite.harness.security import (
+    assert_no_secrets,
+    denied,
+    secure,
+    without_config,
+)
 
 
 def prepare(evidence, service):

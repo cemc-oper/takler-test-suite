@@ -46,7 +46,7 @@ python3 -B run.py --runs-dir ./runs inspect exe-001-abcd1234
 
 ## 批量运行
 
-`reproduce.py` 按 TOML 清单运行一组自动用例。默认清单为 [`selections/wsl-delivery.toml`](../../selections/wsl-delivery.toml)，包含离线、Python/gRPC 和 Go/HTTP 组合。运行默认清单前，按[环境准备](baseline.md)装好 HTTP、Go、查询探针、orvix、takflow 及所选用例的系统依赖。
+`reproduce.py` 按 TOML 清单运行一组自动用例。默认清单为 [`selections/wsl-delivery.toml`](../../selections/wsl-delivery.toml)，包含离线、Python/gRPC 和 Go/HTTP 组合。使用套件的 uv 环境时，先执行 `uv sync --locked --group workflow` 安装包括 takflow 在内的 Python 依赖，再按[环境准备](baseline.md)设置 Go 客户端、查询探针和 orvix 的路径。
 
 ```bash
 "$TAKLER_PYTHON" -B reproduce.py --selection selections/wsl-delivery.toml \

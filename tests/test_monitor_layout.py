@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from cases.capacity.mixed_load.cap_004_monitors import case
-from harness.runtime import RunError
+from takler_test_suite.harness.runtime import RunError
 
 
 @pytest.mark.parametrize("pids", [[11, 12, 12], [11, 12, 13]])

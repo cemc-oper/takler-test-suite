@@ -4,8 +4,8 @@ from pathlib import Path
 from takler.core import Flow
 from takler.tasks.shell import ShellScriptTask
 
-from harness.online import rejected, snapshot, write_definition
-from harness.runtime import require, wait_for
+from takler_test_suite.harness.online import rejected, snapshot, write_definition
+from takler_test_suite.harness.runtime import require, wait_for
 
 SCOPE = "/update_demo"
 TASK = f"{SCOPE}/work"
