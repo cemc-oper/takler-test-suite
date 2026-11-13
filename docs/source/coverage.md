@@ -1,6 +1,6 @@
 # 用例目录
 
-[`catalog.toml`](../catalog.toml) 登记用例和实现入口。运行 `python3 -B run.py list` 可查看检出版本中的用例状态。定义和参数用例使用 `--profile offline`，其余使用 `--profile local`。运行命令见[运行指南](quickstart.md)。
+[`catalog.toml`](../../catalog.toml) 登记用例和实现入口。运行 `python3 -B run.py list` 可查看检出版本中的用例状态。定义和参数用例使用 `--profile offline`，其余使用 `--profile local`。运行命令见[运行指南](quickstart.md)。
 
 ## 定义与参数（offline）
 

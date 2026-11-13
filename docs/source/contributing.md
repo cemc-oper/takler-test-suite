@@ -2,7 +2,7 @@
 
 ## 添加场景用例
 
-1. 在 [`catalog.toml`](../catalog.toml) 登记用例编号、分类、形态、难度、角色、能力、profile 和实现状态。沿用对应分类下已有条目的结构。
+1. 在 [`catalog.toml`](../../catalog.toml) 登记用例编号、分类、形态、难度、角色、能力、profile 和实现状态。沿用对应分类下已有条目的结构。
 2. 在 `cases/<一级分类>/<二级分类>/<用例编号小写_名称>/case.py` 实现入口。例如 `DEF-001` 的目录以 `def_001_` 开头。
 3. 离线用例定义 `run(evidence)`，使用 Takler 的公开构建 API。在线用例定义 `run(evidence, service)`，使用共享的 `LocalService` 和公开客户端。需要在服务启动前生成配置或检查依赖时，可定义 `prepare(evidence, service)`。
 4. 记录用于判定结果的公开状态、业务输出和清理结果。使用 `evidence.record_checks()` 保存关键判据。场景专用脚本与模板可以放在用例目录中，跨用例共享的资产放在 `assets/`。
@@ -23,7 +23,7 @@ python3 -B run.py validate
 
 ```bash
 uvx --from 'sphinx>=8.1' --with-requirements docs/requirements.txt \
-    sphinx-build -W -b html docs docs/_build/html
+    sphinx-build -M html docs/source docs/build -W
 ```
 
-在浏览器打开 `docs/_build/html/index.html`。`-W` 将 Sphinx 警告作为构建失败处理。文档导航从 `docs/index.rst` 开始，使用指南与场景参考各有自己的目录。
+在浏览器打开 `docs/build/html/index.html`。`-W` 将 Sphinx 警告作为构建失败处理。文档源文件和 Sphinx 配置位于 `docs/source/`，导航从 `docs/source/index.rst` 开始。`docs/build/` 存放生成的 HTML 和构建缓存，已加入 Git 忽略规则。

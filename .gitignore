@@ -1,5 +1,5 @@
 /runs/
-/docs/_build/
+/docs/build/
 __pycache__/
 .pytest_cache/
 .ruff_cache/

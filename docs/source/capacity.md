@@ -16,7 +16,7 @@
 | CAP-002 | 1,000 个背景任务，4 个本地 Shell 作业并发，两位独立读者持续查询摘要和完整视图。默认负载为 120 秒 |
 | CAP-003 | 连续混合负载至少 7,200 秒，包含慢读者取消。负载结束后观察 135 秒，检查内存、文件描述符、线程和资源回收 |
 
-默认参数见 [`assets/capacity.toml`](../assets/capacity.toml)。用 `SCENARIO_CAPACITY_CONFIG` 指向另一份完整 TOML，可调整负载或运行时间。运行器保存所用配置和 SHA256。修改负载后按实际配置解读结果。
+默认参数见 [`assets/capacity.toml`](../../assets/capacity.toml)。用 `SCENARIO_CAPACITY_CONFIG` 指向另一份完整 TOML，可调整负载或运行时间。运行器保存所用配置和 SHA256。修改负载后按实际配置解读结果。
 
 默认 checkpoint 每 20 秒保存，资源每秒采样一次。单次查询 RPC 上限为 60 秒，完整读取的总上限为 300 秒。自有进程 RSS 或证据超过 8 GiB、可用内存低于 2 GiB，或自有进程超过 128 个时，运行器报告失败并收尾。精确阈值以本轮配置为准。
 
@@ -33,11 +33,11 @@ SCENARIO_MONITOR_CONFIG="$PWD/assets/monitoring.toml" \
 
 | 配置 | 默认场景 |
 | --- | --- |
-| [`monitoring.toml`](../assets/monitoring.toml) | 34 节点，4 窗，1 个作业 |
-| [`monitoring-small-ten-thread.toml`](../assets/monitoring-small-ten-thread.toml) | 34 节点，10 窗，9 个无界面读者采用线程 |
-| [`monitoring-small-ten-process.toml`](../assets/monitoring-small-ten-process.toml) | 34 节点，10 窗，各读者使用独立进程 |
-| [`monitoring-operations.toml`](../assets/monitoring-operations.toml) | 模拟四个业务时次，9,959 节点，4 窗，4 个作业 |
-| [`monitoring-100k.toml`](../assets/monitoring-100k.toml) | 100,000 个叶任务、104,728 节点，4 窗，4 个作业 |
+| [`monitoring.toml`](../../assets/monitoring.toml) | 34 节点，4 窗，1 个作业 |
+| [`monitoring-small-ten-thread.toml`](../../assets/monitoring-small-ten-thread.toml) | 34 节点，10 窗，9 个无界面读者采用线程 |
+| [`monitoring-small-ten-process.toml`](../../assets/monitoring-small-ten-process.toml) | 34 节点，10 窗，各读者使用独立进程 |
+| [`monitoring-operations.toml`](../../assets/monitoring-operations.toml) | 模拟四个业务时次，9,959 节点，4 窗，4 个作业 |
+| [`monitoring-100k.toml`](../../assets/monitoring-100k.toml) | 100,000 个叶任务、104,728 节点，4 窗，4 个作业 |
 
 启动前至少需要 4 GiB 可用内存和 20 GiB 证据盘余量。运行中检查可用内存、磁盘余量、swap 增量和自有进程 RSS。共享文件系统上的 child CLI 和控制文件等待可按[控制超时](control-timeouts.md)设置。
 

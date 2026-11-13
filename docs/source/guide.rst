@@ -4,7 +4,7 @@
 .. toctree::
    :maxdepth: 1
 
-   quickstart
    baseline
-   control-timeouts
+   quickstart
    troubleshooting
+   control-timeouts

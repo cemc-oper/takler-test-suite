@@ -1,7 +1,6 @@
 project = "Takler Test Suite"
 language = "zh_CN"
 extensions = ["myst_parser"]
-exclude_patterns = ["_build"]
 nitpicky = True
 
 # Keep the same heading fragments in the Markdown sources and the HTML build.
