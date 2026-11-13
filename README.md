@@ -15,9 +15,10 @@ cd takler-test-suite
 uv sync --locked --group scenarios
 python3 -B run.py validate
 python3 -B run.py list
-uv run --locked --group scenarios python -B run.py --runs-dir ./runs \
+runs_dir="$HOME/.local/state/takler-test-suite/runs"
+uv run --locked --group scenarios python -B run.py --runs-dir "$runs_dir" \
     run DEF-001 --profile offline
-uv run --locked --group scenarios python -B run.py --runs-dir ./runs \
+uv run --locked --group scenarios python -B run.py --runs-dir "$runs_dir" \
     run EXE-001 --profile local
 ```
 

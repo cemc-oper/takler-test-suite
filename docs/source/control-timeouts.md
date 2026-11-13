@@ -17,16 +17,18 @@
 在套件仓库根目录执行以下命令。第一条清除继承的覆盖值，第二条演示在 HPC 共享盘上把三项都设为 30 秒。两条命令均使用默认的 CAP-004 小树和新的运行目录。
 
 ```bash
+runs_dir="$HOME/.local/state/takler-test-suite/runs/monitor"
+
 env -u SCENARIO_CHILD_TIMEOUT_SECONDS \
     -u SCENARIO_JOB_TIMEOUT_SECONDS \
     -u SCENARIO_CLIENT_TIMEOUT_SECONDS \
-    "$TAKLER_PYTHON" -Bu run.py --runs-dir ./runs/monitor \
+    "$TAKLER_PYTHON" -Bu run.py --runs-dir "$runs_dir" \
     run CAP-004 --profile local
 
 SCENARIO_CHILD_TIMEOUT_SECONDS=30 \
 SCENARIO_JOB_TIMEOUT_SECONDS=30 \
 SCENARIO_CLIENT_TIMEOUT_SECONDS=30 \
-    "$TAKLER_PYTHON" -Bu run.py --runs-dir ./runs/monitor \
+    "$TAKLER_PYTHON" -Bu run.py --runs-dir "$runs_dir" \
     run CAP-004 --profile local
 ```
 

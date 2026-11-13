@@ -3,9 +3,10 @@
 容量用例使用真实 Takler 服务、Python 客户端、gRPC 和 Linux 本地 Shell。先按[环境准备](baseline.md)设置 `TAKLER_PYTHON`，在套件仓库根目录执行以下命令。
 
 ```bash
-"$TAKLER_PYTHON" -Bu run.py --runs-dir ./runs/capacity run CAP-001 --profile local
-"$TAKLER_PYTHON" -Bu run.py --runs-dir ./runs/capacity run CAP-002 --profile local
-"$TAKLER_PYTHON" -Bu run.py --runs-dir ./runs/capacity run CAP-003 --profile local
+runs_dir="$HOME/.local/state/takler-test-suite/runs/capacity"
+"$TAKLER_PYTHON" -Bu run.py --runs-dir "$runs_dir" run CAP-001 --profile local
+"$TAKLER_PYTHON" -Bu run.py --runs-dir "$runs_dir" run CAP-002 --profile local
+"$TAKLER_PYTHON" -Bu run.py --runs-dir "$runs_dir" run CAP-003 --profile local
 ```
 
 ## CAP-001 至 CAP-003
@@ -26,7 +27,8 @@ CAP-004 需要 Takler 的 TUI extra 和提供 pidfd API 的 `/usr/bin/python3`�
 
 ```bash
 SCENARIO_MONITOR_CONFIG="$PWD/assets/monitoring.toml" \
-    "$TAKLER_PYTHON" -Bu run.py --runs-dir ./runs/monitor run CAP-004 --profile local
+    "$TAKLER_PYTHON" -Bu run.py --runs-dir "$HOME/.local/state/takler-test-suite/runs/monitor" \
+    run CAP-004 --profile local
 ```
 
 `SCENARIO_MONITOR_CONFIG` 选择整份 TOML。复制相近配置后可用 `windows` 设置读者数，用 `job_concurrency` 设置实际作业并发。`headless_mode = "thread"`（默认）在运行器的不同线程中执行无界面读者，`"process"` 为每个读者创建独立进程。第一窗始终运行真实 TUI。

@@ -7,8 +7,9 @@
 ```bash
 python3 -B run.py validate
 python3 -B run.py list
-"$TAKLER_PYTHON" -B run.py --runs-dir ./runs run DEF-001 --profile offline
-"$TAKLER_PYTHON" -B run.py --runs-dir ./runs run EXE-001 --profile local
+runs_dir="$HOME/.local/state/takler-test-suite/runs"
+"$TAKLER_PYTHON" -B run.py --runs-dir "$runs_dir" run DEF-001 --profile offline
+"$TAKLER_PYTHON" -B run.py --runs-dir "$runs_dir" run EXE-001 --profile local
 ```
 
 `validate` 检查目录条目和用例路径。`list` 输出用例编号、实现状态、形态、可用 profile 和名称。按功能查找用例时，可参考[用例目录](coverage.md)。
@@ -21,7 +22,7 @@ python3 -B run.py list
 例如，要通过 HTTP 运行客户端配置场景，先安装 HTTP extra，再执行以下命令。
 
 ```bash
-"$TAKLER_PYTHON" -B run.py --runs-dir ./runs \
+"$TAKLER_PYTHON" -B run.py --runs-dir "$runs_dir" \
     run BAS-003 --profile local --client python --transport http
 ```
 
@@ -30,7 +31,7 @@ python3 -B run.py list
 `run` 会打印 `RUN_ID`、`RUN_DIR` 和 `RESULT`。将下列示例中的编号替换为实际 `RUN_ID`，并使用运行时相同的 `--runs-dir` 读取 `report.json`。
 
 ```bash
-python3 -B run.py --runs-dir ./runs inspect exe-001-abcd1234
+python3 -B run.py --runs-dir "$runs_dir" inspect exe-001-abcd1234
 ```
 
 `--runs-dir` 是全局参数，写在 `run` 或 `inspect` 前。省略时，在 `takler-devel/repo/` 布局中，运行根目录是 `takler-devel` 同级的 `workspace/takler-test-suite/runs`。独立检出时使用 `$XDG_STATE_HOME/takler-test-suite/runs`。`XDG_STATE_HOME` 未设或为相对路径时，使用 `~/.local/state/takler-test-suite/runs`。
@@ -50,7 +51,7 @@ python3 -B run.py --runs-dir ./runs inspect exe-001-abcd1234
 
 ```bash
 "$TAKLER_PYTHON" -B reproduce.py --selection selections/wsl-delivery.toml \
-    --runs-dir ./runs/batch-01 --workers 4
+    --runs-dir "$runs_dir/batch-01" --workers 4
 ```
 
 `--runs-dir` 必须指向尚未创建的目录。`--workers` 默认为 `1`，支持 `1` 至 `4`。入口保存输入清单、执行计划、每项运行的报告和 `summary.json`。任何一项失败、阻塞或未完成时，批量命令以非零状态退出。Ctrl+C 会通知本批正在执行的用例自行收尾。人工观察使用[操作演练](operator-exercise.md)中的单独入口。
