@@ -1,29 +1,41 @@
-# 失败诊断、证据与清理
+# 排错与清理
 
-先通过 RUN_DIR 定位本轮目录，再看 report.json。result=environment_blocked 表示缺少实际入口或能力；failed 表示判据、操作或清理未通过；interrupted 不算通过。不要仅凭日志最后一行或某个业务任务 complete 推断整个集合成功，批量运行应检查 summary 的 expected_runs、passed_runs、各项 result 和退出码。
+## 从运行报告定位问题
+
+打开 `RUN_DIR` 中的 `report.json`，查看 `result`、`reason` 和清理字段。也可以用 `run.py inspect` 读取同一报告。批量运行应查看 `summary.json` 的 `expected_runs`、`passed_runs` 和各项退出码。[查看运行报告](quickstart.md#查看运行报告)
+
+| `result` | 处理方法 |
+| --- | --- |
+| `environment_blocked` | 按 `reason` 补齐所选用例需要的组件或系统能力 |
+| `failed` | 查看首个失败判据、异常和清理结果 |
+| `interrupted` | 检查中断后的进程、监听端口和清理记录 |
+| `passed` | 用例判据与清理均通过，可按需复查证据 |
+
+| 文件或字段 | 用途 |
+| --- | --- |
+| `events.jsonl` | 按运行编号跟踪服务启停、客户端操作及判据 |
+| 阶段 JSON、`job-outputs.json` | 核对阶段状态、attempt 和业务输出 |
+| `process-intervals.json` | 按 PID、内核启动刻度和观察区间核对作业进程 |
+| `server_history`、`cleanup_history` | 对齐恢复用例中的服务重启和清理代次 |
+| `server*.log`、`client-error.log`、`error.log` | 定位服务或客户端错误及 Python 异常 |
+
+## 常见问题
 
 | 现象 | 核对与处理 |
 | --- | --- |
-| 找不到服务/CLI | 检查所选解释器的 bin 目录内有 takler-server、takler-client-py，使用绝对解释器路径。 |
-| Go / orvix / probe 环境阻塞 | 按 baseline 的环境变量设置同版本真实可执行文件；EXE-003 的 orvix basename 必须为 orvix。不要用临时假程序替代环境。 |
-| HTTP 连接失败 | 确认已安装 HTTP extra，使用本轮 connect.yaml 的 HTTP 端口；服务也有内部 gRPC 端口，不能互换。 |
-| 缺失 connect 文件 | Python 返回 FileNotFoundError/3，Go 返回配置加载诊断/1。检查路径；不应退回默认地址继续操作。 |
-| 含空格解释器下 EXE-002 失败 | 使用当前版本的 Shell trampoline，由引用后的解释器执行回执故障脚本；不要将含空格路径直接写进 shebang。 |
-| 查询/周期保存等待较长 | QRY-002、TIM、RCV 等使用真实等待；保留截止和事件，避免外层工具提前终止。 |
-| 重启服务 halted | RCV 的预期恢复保护；先核对 restore_summary 和外部作业，再按场景要求 resume。 |
-| checkpoint_failure 后 resume 仍拒绝 | 先恢复存储权限并等周期保存成功；resume 即使拒绝也会清除 manual/recovery，人工暂停需独立核对。 |
-| orvix 文件数量多于作业数 | `.job<UUID>` 是原始作业；`.submit`、`.submit.log`、`.info.yaml` 是相关产物，不能都计为重复运行。 |
-| TUI 键盘/截图没有响应 | 检查真实终端尺寸、stty -ixon 和焦点；命令面板关闭后再输入 q。树属性行会改变后续行号，不照搬旧截图坐标。 |
-| TUI 恢复后仍有旧错误文字 | 核对新 last refresh 和 stale 是否撤除；旧错误/通知可能继续显示，不等于仍断连。 |
+| 找不到 `takler-server` 或 `takler-client-py` | 将 `TAKLER_PYTHON` 指向实际安装了 Takler 的解释器，确认两个入口位于它的 `bin` 目录 |
+| Go、orvix 或查询探针缺失 | 按[环境准备](baseline.md)设置所需的绝对可执行路径 |
+| HTTP 连接失败 | 检查 `http` extra 及本次 `connect.yaml` 中记录的 HTTP 端口。HTTP 运行同时使用一个内部 gRPC 端口 |
+| 查询过期、定时或恢复场景等待较长 | 查看该阶段是否正在等待真实时钟、租约过期或周期保存。共享盘上的 child CLI 和控制文件等待可按[控制超时](control-timeouts.md)配置 |
+| checkpoint 恢复后服务处于 `halted` | 核对 `restore_summary`、外部作业和暂停原因，按用例要求处理后再执行 `server-resume` |
+| checkpoint 写入失败后服务拒绝 `server-resume` | 恢复写权限，等待周期保存成功，再核对暂停原因。`server-resume` 即使被 `checkpoint_failure` 拒绝，也会清除 `manual` 和 `recovery` |
+| orvix 生成的文件多于作业数 | `.job<UUID>` 是作业脚本，`.submit`、`.submit.log`、`.info.yaml` 是相关产物 |
+| TUI 按键或截图无响应 | 检查终端焦点和尺寸。可在启动 TUI 前执行 `stty -ixon`。退出前先关闭命令面板 |
+| TUI 恢复后仍显示旧错误 | 查看最新刷新时间及 stale 是否撤除，通知区域可能仍保留之前的错误 |
 
-证据入口：events.jsonl 记录命令类别及启停；阶段 JSON 保留公开状态和运行身份；process-intervals.json 保留 PID、启动刻度及实际进程区间；job-outputs.json 关联输出；server_history/cleanup_history 对齐重启代次。raw server 日志、client-error.log、error.log 和 probe 私有诊断用于定位，日志不是恢复数据。
+## 清理与归档
 
-## 清理顺序
-
-正常自动运行和 Ctrl-C 由入口管理自有作业、查询探针和服务。交互演练先退出 TUI，再写本轮 CONTROL=finish 或 stop。若服务被本次演练暂停，处理器先恢复它再清理。RCV-004 的 finally 恢复目录权限；RCV-003 通过原服务 group/session、cwd、可执行文件和 PID 启动刻度绑定 pidfd 清理辅助进程。
-
-确认 report 中 cleanup 正常、监听释放，进程观察全部有 exit_upper_ns；对于中断/失败，另查 cleanup_error、所有 peers 和服务辅助进程。只检查一个旧 PID 是否存在不足以识别原进程，需结合启动刻度。不要用进程名批量终止工作区服务。
-
-运行目录默认保留，不自动删除历史证据。确认所有进程和端口已清理、所需证据已归档后，才清理自己明确选择的 RUN_DIR；删除文件不会终止进程。批量输出根目录禁止覆盖，复跑使用新目录。
-
-原始 `.check`、`private-*`、security、含凭据的定义、生成 `.job<UUID>` 和 `.submit` 以及环境/探针私有诊断应留在 0700 目录。公开归档采用明确文件选择，扫描本次实际生成的 operator/API/child 秘密，发现命中即失败；不靠遮盖内容把泄漏判为通过。公开包的 manifest 用于核对文件路径和 SHA256；保留失败和未核验记录，不将它们改成成功。
+- 自动用例在正常结束和 Ctrl+C 时清理本次启动的服务、受控作业和查询探针。交互入口按[操作演练](operator-exercise.md)结束。
+- 中断或失败后，查看 `cleanup_error` 和服务代次，确认本次监听已释放。用 `process-intervals.json` 中的 PID 和内核启动刻度确认原作业身份。
+- 运行目录默认保留。确认进程和端口已清理、所需证据已归档后，再删除明确选定的 `RUN_DIR`。
+- 原始 checkpoint、`private-*`、`security/`、生成的作业脚本及 `.submit` 文件可能含测试凭据。将这些文件保留在权限为 `0700` 的私有运行目录中。共享报告前，检查选中的文件是否包含本轮生成的 operator、API 或 child 凭据。
