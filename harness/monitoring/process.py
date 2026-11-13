@@ -9,8 +9,8 @@ import sys
 
 from takler.exceptions import QueryResponseError
 
-from .monitor_windows import HeadlessWindow, RpcTrace
-from .runtime import RunError, require
+from ..runtime import RunError, require
+from .windows import HeadlessWindow, RpcTrace
 
 
 class ProcessWindow:
@@ -49,7 +49,7 @@ class ProcessWindow:
                     marker,
                     str(timeout),
                 ],
-                cwd=Path(__file__).resolve().parents[1],
+                cwd=Path(__file__).resolve().parents[2],
                 env=env,
                 pass_fds=(child.fileno(),),
                 stdin=subprocess.DEVNULL,
@@ -157,7 +157,7 @@ class ProcessWindow:
 
 
 class HeadlessProcessWindow(ProcessWindow):
-    module = "harness.monitor_process"
+    module = "harness.monitoring.process"
     label = "Headless monitor"
 
     @property

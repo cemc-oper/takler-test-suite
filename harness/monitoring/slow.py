@@ -4,7 +4,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 
-from .runtime import require, wait_for
+from ..runtime import require, wait_for
 
 
 def slow_reader_refresh(workload, group):

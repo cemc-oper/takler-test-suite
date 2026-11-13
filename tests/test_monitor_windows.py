@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import grpc
 import pytest
 
-from harness.monitor_windows import MonitorGroup, RpcTrace, snapshot_inventory
+from harness.monitoring.windows import MonitorGroup, RpcTrace, snapshot_inventory
 from harness.runtime import Evidence, RunError
 from takler.exceptions import QueryResponseError
 

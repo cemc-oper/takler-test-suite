@@ -12,15 +12,15 @@ from contextlib import ExitStack
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from harness import monitor_workload
 from harness.jobs import process_identity
-from harness.monitor_checkpoint import checkpoint_cold_open, checkpoint_refreshes
-from harness.monitor_process import HeadlessProcessWindow
-from harness.monitor_rebuild import definition_paths, verify_scope_rebuild
-from harness.monitor_slow import slow_reader_refresh
-from harness.monitor_tree import tree_counts
-from harness.monitor_tui import TuiWindow
-from harness.monitor_windows import HeadlessWindow, MonitorGroup
+from harness.monitoring import workload as monitor_workload
+from harness.monitoring.checkpoint import checkpoint_cold_open, checkpoint_refreshes
+from harness.monitoring.process import HeadlessProcessWindow
+from harness.monitoring.rebuild import definition_paths, verify_scope_rebuild
+from harness.monitoring.slow import slow_reader_refresh
+from harness.monitoring.tree import tree_counts
+from harness.monitoring.tui import TuiWindow
+from harness.monitoring.windows import HeadlessWindow, MonitorGroup
 from harness.recovery import cleanup_service_helpers, require_helper_runtime
 from harness.runtime import require
 

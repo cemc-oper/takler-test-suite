@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from harness.catalog import load_catalog
+from harness.loader import load_entry
 from harness.presentation import finish_showcase, start_showcase
 from harness.runtime import (
     EnvironmentBlocked,
@@ -24,7 +25,8 @@ from harness.runtime import (
     RunError,
     require,
 )
-from run import ROOT, load_entry
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def observe(jobs, *, keep_service, max_seconds):

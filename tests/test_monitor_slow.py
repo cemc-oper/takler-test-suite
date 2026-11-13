@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import grpc
 import pytest
 
-from harness.monitor_slow import slow_reader_refresh
-from harness.monitor_windows import MonitorGroup, RpcTrace
+from harness.monitoring.slow import slow_reader_refresh
+from harness.monitoring.windows import MonitorGroup, RpcTrace
 from harness.runtime import Evidence, RunError
 
 

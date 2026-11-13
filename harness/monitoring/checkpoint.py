@@ -2,7 +2,7 @@
 
 import time
 
-from .runtime import require, wait_for
+from ..runtime import require, wait_for
 
 
 def _observe(workload, description, predicate):

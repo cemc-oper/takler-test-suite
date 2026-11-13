@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from harness.monitor_process import HeadlessProcessWindow
+from harness.monitoring.process import HeadlessProcessWindow
 from harness.runtime import Evidence, RunError
 
 

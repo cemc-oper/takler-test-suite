@@ -10,12 +10,12 @@ from xml.etree import ElementTree
 import grpc
 from takler.exceptions import QueryResponseError
 
-from .monitor_process import ProcessWindow
-from .runtime import RunError, require
+from ..runtime import RunError, require
+from .process import ProcessWindow
 
 
 class TuiWindow(ProcessWindow):
-    module = "harness.monitor_tui"
+    module = "harness.monitoring.tui"
     label = "Textual monitor"
 
     @property
@@ -52,7 +52,8 @@ async def _session(conn, port, scope, marker, timeout):
     from takler.tui.service import TaklerTuiService
     from takler.tui.widgets import NodeTree
     from textual.widgets import Switch
-    from harness.monitor_windows import RpcTrace, snapshot_inventory
+
+    from .windows import RpcTrace, snapshot_inventory
 
     class ObservedService(TaklerTuiService):
         """Timestamp the real service's public return values before the app draws."""

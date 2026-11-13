@@ -2,7 +2,7 @@
 
 import pytest
 
-from harness.monitor_tui import TuiWindow, _screen_observation
+from harness.monitoring.tui import TuiWindow, _screen_observation
 from harness.runtime import RunError
 
 

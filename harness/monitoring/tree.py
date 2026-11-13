@@ -4,7 +4,7 @@ from math import ceil
 
 from takler.core import Flow
 
-from .runtime import require
+from ..runtime import require
 
 
 STAGES = ("data", "graph", "archive")

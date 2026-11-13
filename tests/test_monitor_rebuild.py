@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from harness.monitor_rebuild import ScopeReader, definition_paths
+from harness.monitoring.rebuild import ScopeReader, definition_paths
 from harness.runtime import RunError
 from takler.exceptions import QueryResponseError
 

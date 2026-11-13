@@ -15,7 +15,7 @@ from takler.client.query_client import QueryClient
 from takler.exceptions import QueryResponseError
 from takler.protocol.query_v1 import DetailRequest, FailureReply
 
-from .runtime import RunError, require
+from ..runtime import RunError, require
 
 
 def snapshot_inventory(view):

@@ -16,16 +16,16 @@ import tomllib
 import takler
 from takler.serialization.checkpoint import restore_checkpoint
 
-from .capacity import Resources
-from .capacity_load import Commands
-from .jobs import Jobs
-from .monitor_tree import monitor_flows, tree_counts
-from .online import write_definition
-from .recovery import status
-from .runtime import EnvironmentBlocked, require, timestamp, wait_for
+from ..capacity import Resources
+from ..capacity_load import Commands
+from ..jobs import Jobs
+from ..online import write_definition
+from ..recovery import status
+from ..runtime import EnvironmentBlocked, require, timestamp, wait_for
+from .tree import monitor_flows, tree_counts
 
 
-ASSETS = Path(__file__).resolve().parents[1] / "assets"
+ASSETS = Path(__file__).resolve().parents[2] / "assets"
 SCOPE = "/monitor"
 MARKER = "/monitor/marker"
 

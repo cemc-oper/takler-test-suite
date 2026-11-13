@@ -12,7 +12,7 @@ from takler.client.grpc_transport import GrpcTransport
 from takler.core import Flow
 from takler.protocol.commands import ServiceResponse
 
-from harness.monitor_workload import (
+from harness.monitoring.workload import (
     ASSETS,
     MonitorWorkload,
     check_host,
@@ -38,7 +38,7 @@ def test_freeze_smoke_config_before_launch(tmp_path, monkeypatch, mode):
     evidence = Evidence(tmp_path, SimpleNamespace(id="CAP-004"), "local")
     service = LocalService(evidence)
     monkeypatch.setattr(
-        "harness.monitor_workload.host_sample",
+        "harness.monitoring.workload.host_sample",
         lambda directory: {
             "available_bytes": 10 << 30,
             "swap_used_bytes": 1024,
@@ -258,7 +258,7 @@ def test_headroom_loads_every_shard_before_one_begin_all(tmp_path):
 
 def test_headroom_restore_detects_a_submitted_background_leaf():
     from takler.core import Bunch
-    from harness.monitor_tree import monitor_flows
+    from harness.monitoring.tree import monitor_flows
 
     cfg = {
         "tree_kind": "operations_headroom",

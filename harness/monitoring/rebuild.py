@@ -9,8 +9,8 @@ import time
 
 from takler.exceptions import QueryResponseError
 
-from .monitor_windows import HeadlessWindow, MonitorGroup
-from .runtime import RunError, require
+from ..runtime import RunError, require
+from .windows import HeadlessWindow, MonitorGroup
 
 
 def definition_paths(node, parent=""):

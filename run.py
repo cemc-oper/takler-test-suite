@@ -1,5 +1,4 @@
 import argparse
-import importlib.util
 import os
 import re
 import sys
@@ -7,18 +6,10 @@ import traceback
 from pathlib import Path
 
 from harness.catalog import CatalogError, load_catalog
+from harness.loader import load_entry
 from harness.runtime import EnvironmentBlocked, Evidence, LocalService, RunError
 
 ROOT = Path(__file__).resolve().parent
-
-
-def load_entry(entry):
-    spec = importlib.util.spec_from_file_location("scenario_case", entry)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    if not callable(getattr(module, "run", None)):
-        raise RunError("Case entry must export run()")
-    return module
 
 
 def execute(case, profile, runs_dir, transport="grpc", client="python"):
